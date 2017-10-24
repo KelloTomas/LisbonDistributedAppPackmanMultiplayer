@@ -50,7 +50,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\pacmanShared\Shared.csproj">
+    <ProjectReference Include="..\pacmanShared\Shared.csproj">
       <Project>{ddfd7b0b-aec6-4ed4-bdd4-8ce212d28158}</Project>
       <Name>Shared</Name>
     </ProjectReference>
