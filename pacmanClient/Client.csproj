@@ -7,8 +7,8 @@
     <ProjectGuid>{ECE5A838-E181-493A-B9A2-6ADD01DE37F6}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>pacman</RootNamespace>
-    <AssemblyName>pacman</AssemblyName>
+    <RootNamespace>pacmanClient</RootNamespace>
+    <AssemblyName>pacmanClient</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

@@ -12,7 +12,12 @@ namespace PuppetMaster
 	{
 		StreamReader reader = null;
 		Timer timer;
+		List<System.Diagnostics.Process> process = new List<System.Diagnostics.Process>();
+		const string ExeFileNameServer = "pacmanServer.exe";
+		const string ExeFileNameClient = "pacmanClient.exe";
 		int moreWait = 0;
+		string serverURL = "";
+		private string serverPId;
 
 		static void Main(string[] args)
 		{
@@ -26,11 +31,17 @@ namespace PuppetMaster
 				AutoReset = false
 			};
 			timer.Elapsed += Timer_Elapsed;
-			if (args.Count() == 2)
+			if (args.Count() >= 1)
 			{
-				reader = new StreamReader(args[1]);
+				Console.WriteLine($"Reading file: {args[0]}");
+				reader = new StreamReader(args[0]);
+				ReadInstFromFile();
 			}
-			while(true)
+			else
+			{
+				Console.WriteLine("No filename in arguments");
+			}
+			while (true)
 			{
 				ParseCommand(Console.ReadLine());
 			}
@@ -56,11 +67,28 @@ namespace PuppetMaster
 		{
 			if (string.IsNullOrWhiteSpace(command))
 				return false;
+			Console.WriteLine($"Starting: {command}");
 			string[] parts = command.Split(' ');
 			switch (parts[0])
 			{
+				case "q":
+					foreach (System.Diagnostics.Process proc in process)
+					{
+						// window can be already closed
+						try
+						{
+						proc.CloseMainWindow();
+						proc.Close();
+						}
+						catch (System.InvalidOperationException)
+						{
+
+						}
+					}
+					Environment.Exit(1);
+					return false;
 				case "wait_t":
-					if(timer.Enabled)
+					if (timer.Enabled)
 					{
 						moreWait += int.Parse(parts[1]);
 					}
@@ -71,12 +99,22 @@ namespace PuppetMaster
 					}
 					return false;
 				case "StartServer":
-					System.Diagnostics.Process.Start(Path.Combine("C:\\Users\\kellotom\\source\\repos\\packmanMultiplayer\\pacmanServer\\pacmanServer\\bin\\Debug", "pacmanServer.exe"),
-																	command.Replace("wait_t ", ""));
+					serverPId = parts[1];
+					serverURL = parts[3];
+					string mSec = parts[4];
+					string numOfPlayers = parts[5];
+					Console.WriteLine($"{ExeFileNameServer} {serverPId} {serverURL} {mSec} {numOfPlayers}");
+					process.Add(System.Diagnostics.Process.Start(Path.Combine("C:\\Users\\kellotom\\source\\repos\\packmanMultiplayer\\pacmanServer\\bin\\Debug", ExeFileNameServer),
+																	$"{serverPId} {serverURL} {mSec} {numOfPlayers}"));
 					break;
 				case "StartClient":
-					System.Diagnostics.Process.Start(Path.Combine("C:\\Users\\kellotom\\source\\repos\\packmanMultiplayer\\pacmanServer\\pacmanServer\\bin\\Debug", "pacmanServer.exe"),
-																	command.Replace("wait_t ", ""));
+					string clientPId = parts[1];
+					string clientURL = parts[3];
+					string clientMSec = parts[4];
+					string filename = parts.Count() == 6 ? null : parts[6];
+					Console.WriteLine($"{ExeFileNameClient} {clientPId} {clientURL} {serverPId} {serverURL} {clientMSec} {filename}");
+					process.Add(System.Diagnostics.Process.Start(Path.Combine("C:\\Users\\kellotom\\source\\repos\\packmanMultiplayer\\pacmanClient\\bin\\Debug", ExeFileNameClient),
+																	$"{clientPId} {clientURL} {serverPId} {serverURL} {clientMSec} {filename}"));
 					break;
 				case "GlobalStatus":
 					break;

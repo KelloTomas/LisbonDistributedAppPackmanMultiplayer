@@ -13,12 +13,13 @@ namespace CommonTypes
 		}
 		public bool RegisterPlayer(string pId, string clientURL)
 		{
-			return true;
+			return _program.RegisterPlayer(pId, clientURL);
 		}
 
 		public void SetMove(string pId, int roundId, Direction direction)
 		{
-
+			Console.WriteLine($"Playeer {pId} set direction {direction} in {roundId} round");
+			_program.SetMove(pId, roundId, direction);
 		}
 
 #region IController

@@ -1,4 +1,3 @@
-using pacman;
 using Shared;
 using System;
 using System.Collections.Generic;
@@ -7,7 +6,7 @@ using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
 using System.Timers;
 
-namespace CommonTypes
+namespace pacmanClient
 {
 	public class ServiceClient : MarshalByRefObject, IServiceClient
 	{

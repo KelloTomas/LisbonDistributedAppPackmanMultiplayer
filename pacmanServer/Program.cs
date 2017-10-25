@@ -4,7 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Remoting;
+using System.Runtime.Remoting.Channels;
+using System.Runtime.Remoting.Channels.Tcp;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 
@@ -15,10 +18,11 @@ namespace pacmanServer
 #region private fields...
 		string _pId;
 		int _maxNumPlayers;
-		int _numPlayers;
+		int _numPlayers = 0;
 		Game _game = new Game();
+		private TcpChannel channel;
 		int _speed = 5;
-		Timer _timer;
+		System.Timers.Timer _timer;
 		ServiceServer serviceServer;
 		private List<Client> _clientsList = new List<Client>();
 		private Dictionary<string, IServiceClient> _clientsDict = new Dictionary<string, IServiceClient>();
@@ -31,19 +35,29 @@ namespace pacmanServer
 
 		void Init(string[] args)
 		{
-			_pId = args[1];
-			string myURL = args[2];
-			int mSec = int.Parse(args[3]);
-			_maxNumPlayers = int.Parse(args[4]);
-			_timer = new Timer() { AutoReset = true, Enabled = false, Interval = mSec };
+			_pId = args[0];
+			string myURL = args[1];
+			int mSec = int.Parse(args[2]);
+			_maxNumPlayers = int.Parse(args[3]);
+			_timer = new System.Timers.Timer() { AutoReset = true, Enabled = false, Interval = mSec };
 			_timer.Elapsed += _timer_Elapsed;
+
+			/* set channel */
+			channel = new TcpChannel(int.Parse(Shared.Shared.ParseUrl(URLparts.Port, myURL)));
+			ChannelServices.RegisterChannel(channel, true);
+
 			/*set service */
 			serviceServer = new ServiceServer(this);
-			RemotingServices.Marshal(serviceServer, "ServiceServer");
+			string link = Shared.Shared.ParseUrl(URLparts.Link, myURL);
+			Console.WriteLine($"Starting server on {myURL}, link: {link}");
+			RemotingServices.Marshal(serviceServer, link);
+			Console.WriteLine("Write \"q\" to quit");
+			while (Console.ReadLine() != "q") ;
 		}
 
 		private void _timer_Elapsed(object sender, ElapsedEventArgs e)
 		{
+			Console.WriteLine("timer elapsed");
 			foreach (Character player in _game.Players.Values)
 			{
 				switch (player.Direction)
@@ -132,8 +146,10 @@ namespace pacmanServer
 				}
 			}
 			*/
+			Console.WriteLine("Game updated");
 			foreach (IServiceClient client in _clientsDict.Values)
 			{
+				Console.WriteLine("sending game to clinet");
 				client.UpdateGame(_game);
 			}
 		}
@@ -141,7 +157,11 @@ namespace pacmanServer
 		public bool RegisterPlayer(string pId, string clientURL)
 		{
 			if (_numPlayers == _maxNumPlayers)
+			{
+				Console.WriteLine($"SERVER FULL and playeer {pId} with url {clientURL} try to connect");
 				return false;
+			}
+			Console.WriteLine($"Playeer {pId} with url {clientURL} is connected");
 			/* get service */
 			_clientsList.Add(new Client(pId, clientURL));
 			_clientsDict.Add(pId, (IServiceClient)Activator.GetObject(
@@ -150,12 +170,22 @@ namespace pacmanServer
 
 			if (++_numPlayers == _maxNumPlayers)
 			{
-				foreach (IServiceClient client in _clientsDict.Values)
-				{
-					client.GameStarted(_pId, _clientsList, _game); 
-				}
+				Console.WriteLine("Game starting");
+
+				ThreadStart ts = new ThreadStart(this.BroadcastGameStart);
+				Thread t = new Thread(ts);
+				t.Start();
 			}
 			return true;
+		}
+
+		private void BroadcastGameStart()
+		{
+			foreach (IServiceClient client in _clientsDict.Values)
+			{
+				client.GameStarted(_pId, _clientsList, _game);
+			}
+			_timer.Start();
 		}
 
 		public void SetMove(string pId, int roundId, Direction direction)

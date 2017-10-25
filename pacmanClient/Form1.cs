@@ -1,5 +1,4 @@
-﻿using CommonTypes;
-using Shared;
+﻿using Shared;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -15,9 +14,10 @@ using System.Windows.Forms;
 
 
 
-namespace pacman {
+namespace pacmanClient {
     public partial class Form1 : Form {
-#region private...
+		#region private...
+		private string filename = null;
 		private Direction _direction;
 		private List<PictureBox> players = new List<PictureBox>();
 		private List<PictureBox> monsters = new List<PictureBox>();
@@ -25,36 +25,42 @@ namespace pacman {
 		private Game _game;
 		private ServiceClient serviceClient;
 		private TcpChannel channel;
-		private System.Timers.Timer timer;
-		private IServiceServer server;
+		private System.Timers.Timer _timer;
+		private static IServiceServer server;
 		private string _pId;
 		private Dictionary<string, IServiceClient> _clients = new Dictionary<string, IServiceClient>();
 		#endregion
 
 		#region constructor...
 		public Form1(string[] args) {
-			_pId = args[1];
-			string myURL = args[2];
-			string serverPID = args[3];
-			string serverURL = args[4];
-			int mSec = int.Parse(args[5]);
-			string filename = args[6];
 			InitializeComponent();
             label2.Visible = false;
+			_pId = args[0];
+			string myURL = args[1];
+			string serverPID = args[2];
+			string serverURL = args[3];
+			int mSec = int.Parse(args[4]);
+			if(args.Count() == 6)
+			{
+				filename = args[5];
+			}
 
-			timer = new System.Timers.Timer() { Interval = mSec, AutoReset = false, Enabled = false };
-			timer.Elapsed += timer_Tick;
-			channel = new TcpChannel(int.Parse(Shared.Shared.ParseUrl(URLparts.Port, myURL)));
+			_timer = new System.Timers.Timer() { Interval = mSec, AutoReset = true, Enabled = false };
+			_timer.Elapsed += Timer_Tick;
+			string tmp = Shared.Shared.ParseUrl(URLparts.Port, myURL);
+
+			/* set channel */
+			channel = new TcpChannel(int.Parse(tmp));
 			ChannelServices.RegisterChannel(channel, true);
 
 			/*set service */
 			serviceClient = new ServiceClient(_pId, this);
-			RemotingServices.Marshal(serviceClient, "ServiceClient");
+			RemotingServices.Marshal(serviceClient, Shared.Shared.ParseUrl(URLparts.Link, myURL));
 
 			/* get service */
 			server = (IServiceServer)Activator.GetObject(
 				typeof(IServiceServer),
-				myURL);
+				serverURL);
 			if (!server.RegisterPlayer(_pId, myURL))
 			{
 				//ToDo cant connect, server full
@@ -63,7 +69,7 @@ namespace pacman {
 		#endregion
 
 #region controller handler
-		private void keyisdown(object sender, KeyEventArgs e) {
+		private void KeyIsDown(object sender, KeyEventArgs e) {
             if (e.KeyCode == Keys.Left) {
 				_direction = Direction.Left;
             }
@@ -84,7 +90,7 @@ namespace pacman {
                }
         }
 
-        private void keyisup(object sender, KeyEventArgs e) {
+        private void KeyIsUp(object sender, KeyEventArgs e) {
             if (e.KeyCode == Keys.Left
             || e.KeyCode == Keys.Right
             || e.KeyCode == Keys.Up
@@ -94,11 +100,22 @@ namespace pacman {
 			}
         }
 
-        private void timer_Tick(object sender, EventArgs e) {
+        private void Timer_Tick(object sender, EventArgs e) {
+			/*
+			try
+			{
+			*/
 			server.SetMove(_pId, _roundId++, _direction);
+			/*
+			}
+			catch (Exception)
+			{
+
+			}
+			*/
         }
 
-        private void tbMsg_KeyDown(object sender, KeyEventArgs e) {
+        private void TbMsg_KeyDown(object sender, KeyEventArgs e) {
             if (e.KeyCode == Keys.Enter) {
 				// foreach ToDo
 				foreach (IServiceClient client in _clients.Values)
@@ -116,9 +133,11 @@ namespace pacman {
 		public void GameStarted(string serverPId, List<Client> clients, Game game)
 		{
 			_game = game;
-			timer.Start();
+			_timer.Start();
 			foreach (Client client in clients)
 			{
+				if (client.PId == _pId)
+					continue;
 				_clients.Add(client.PId, (IServiceClient)Activator.GetObject(
 				typeof(IServiceClient),
 				client.URL));
@@ -178,7 +197,6 @@ namespace pacman {
 				monsters.RemoveAt(i);
 			}
 
-			pacman.Image = Properties.Resources.Left;
 			if (_game.Coins.Count != game.Coins.Count)
 			{
 				//ToDo update coins

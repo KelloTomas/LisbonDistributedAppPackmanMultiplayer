@@ -4,17 +4,20 @@ using System.Text.RegularExpressions;
 
 namespace Shared
 {
+	[Serializable]
 	public class Position
 	{
 		public int Y { get; set; }
 		public int X { get; set; }
 	}
 
+	[Serializable]
 	public class Character : Position
 	{
 		public Direction Direction { get; set; }
 	}
 
+	[Serializable]
 	public class Game
 	{
 		public Dictionary<string, Character> Players { get; set; }
@@ -22,6 +25,7 @@ namespace Shared
 		public List<Position> Coins { get; set; }
 	}
 
+	[Serializable]
 	public class Client
 	{
 		public Client(string pId, string URL)
@@ -34,6 +38,7 @@ namespace Shared
 		public string URL { get; private set; }
 	}
 
+	[Serializable]
 	public enum Direction
 	{
 		Up,
@@ -69,7 +74,9 @@ namespace Shared
 					break;
 			}
 			Regex rgx = new Regex(pattern, RegexOptions.IgnoreCase);
-			return rgx.Match(URL).ToString();
+			Match m = rgx.Match(URL);
+			string ret = m.Groups[1].ToString();
+			return ret;
 		}
 	}
 }
