@@ -18,7 +18,7 @@ namespace pacmanClient {
     public partial class Form1 : Form {
 		#region private...
 		private string filename = null;
-		private Direction _direction;
+		private Direction _direction = Direction.No;
 		private List<PictureBox> players = new List<PictureBox>();
 		private List<PictureBox> monsters = new List<PictureBox>();
 		private int _roundId = 0;

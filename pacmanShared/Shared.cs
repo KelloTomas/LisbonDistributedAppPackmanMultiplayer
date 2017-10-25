@@ -41,11 +41,11 @@ namespace Shared
 	[Serializable]
 	public enum Direction
 	{
+		No,
 		Up,
 		Down,
 		Left,
-		Right,
-		No
+		Right
 	}
 
 	public enum URLparts
