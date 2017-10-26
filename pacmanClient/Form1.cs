@@ -21,6 +21,7 @@ namespace pacmanClient {
 		private Direction _direction = Direction.No;
 		private List<PictureBox> players = new List<PictureBox>();
 		private List<PictureBox> monsters = new List<PictureBox>();
+		private List<PictureBox> coins = new List<PictureBox>();
 		private int _roundId = 0;
 		private Game _game;
 		private ServiceClient serviceClient;
@@ -35,6 +36,12 @@ namespace pacmanClient {
 		public Form1(string[] args) {
 			InitializeComponent();
             label2.Visible = false;
+            label1.Visible = false;
+			/*
+			Console.WriteLine("Hello");
+			DrawNewCharacterToGame(Controls, Properties.Resources.red_guy);
+			DrawNewCharacterToGame(Controls, Properties.Resources.red_guy).Left = 300;
+			*/
 			_pId = args[0];
 			string myURL = args[1];
 			string serverPID = args[2];
@@ -61,9 +68,17 @@ namespace pacmanClient {
 			server = (IServiceServer)Activator.GetObject(
 				typeof(IServiceServer),
 				serverURL);
-			if (!server.RegisterPlayer(_pId, myURL))
+			try
 			{
+				if (!server.RegisterPlayer(_pId, myURL))
+				{
+					throw new Exception();
 				//ToDo cant connect, server full
+				}
+			}
+			catch
+			{
+				Console.WriteLine("Cant connect to server");
 			}
 		}
 		#endregion
@@ -101,23 +116,11 @@ namespace pacmanClient {
         }
 
         private void Timer_Tick(object sender, EventArgs e) {
-			/*
-			try
-			{
-			*/
 			server.SetMove(_pId, _roundId++, _direction);
-			/*
-			}
-			catch (Exception)
-			{
-
-			}
-			*/
         }
 
         private void TbMsg_KeyDown(object sender, KeyEventArgs e) {
             if (e.KeyCode == Keys.Enter) {
-				// foreach ToDo
 				foreach (IServiceClient client in _clients.Values)
 				{
 					client.MessageReceive(_pId, tbMsg.Text);
@@ -133,6 +136,14 @@ namespace pacmanClient {
 		public void GameStarted(string serverPId, List<Client> clients, Game game)
 		{
 			_game = game;
+
+			BeginInvoke(new MethodInvoker(delegate
+			{
+				foreach (var obsticle in game.Obsticles)
+				{
+					DrawObsticle(Controls, obsticle);
+				}
+			}));
 			_timer.Start();
 			foreach (Client client in clients)
 			{
@@ -151,55 +162,118 @@ namespace pacmanClient {
 
 		private PictureBox DrawNewCharacterToGame(Control.ControlCollection Controls, Bitmap picture)
 		{
-			PictureBox ghost = new System.Windows.Forms.PictureBox();
+			PictureBox ghost = new PictureBox();
 
 			((ISupportInitialize)(ghost)).BeginInit();
 			ghost.BackColor = Color.Transparent;
 			ghost.Image = picture;
-			//ghost.Location = new Point(180, 73);
-			//ghost.Name = "redGhost";
 			ghost.Size = new Size(30, 30);
 			ghost.SizeMode = PictureBoxSizeMode.Zoom;
-			//ghost.TabIndex = 1;
-			//ghost.TabStop = false;
-			//ghost.Tag = "ghost";
+			/*
+			ghost.Location = new Point(180, 73);
+			ghost.Name = "redGhost";
+			ghost.TabIndex = 1;
+			ghost.TabStop = false;
+			ghost.Tag = "ghost";
+			*/
+
 			Controls.Add(ghost);
 			((ISupportInitialize)(ghost)).EndInit();
 			return ghost;
 		}
 
+		void DrawObsticle(Control.ControlCollection Controls, Obsticle o)
+		{
+			PictureBox obsticle = new PictureBox();
+			((ISupportInitialize)(obsticle)).BeginInit();
+			obsticle.BackColor = Color.MidnightBlue;
+			obsticle.Location = new Point(o.Corner1.X, o.Corner1.Y);
+			obsticle.Size = new Size(o.Corner2.X, o.Corner2.Y);
+			/*
+			obsticle.TabIndex = 0;
+			obsticle.Name = "pictureBox1";
+			obsticle.TabStop = false;
+			obsticle.Tag = "wall";
+			*/
+			Controls.Add(obsticle);
+			((ISupportInitialize)(obsticle)).EndInit();
+		}
+
 		public void UpdateGame(Game game)
 		{
+			_game = game;
 			int i;
 			for (i = 0; i < game.Players.Count; i++)
 			{
-				if (i > players.Count)
-					DrawNewCharacterToGame(Controls, Properties.Resources.red_guy);
-				players.ElementAt(i).Left = game.Players.ElementAt(i).Value.X;
-				players.ElementAt(i).Top = game.Players.ElementAt(i).Value.Y;
+				if (i >= players.Count)
+					BeginInvoke(new MethodInvoker(delegate
+					{
+						players.Add(DrawNewCharacterToGame(Controls, Properties.Resources.Right));
+						UpdatePlayerPosition(game, i);
+					}));
+				else
+					UpdatePlayerPosition(game, i);
 			}
-			while(players.Count > i)
+			while (players.Count > i)
 			{
+				Console.WriteLine("Removing character");
 				RemoveCharacterFromForm(players.ElementAt(i));
 				players.RemoveAt(i);
 			}
-			i = 0;
 			for (i = 0; i < game.Monsters.Count; i++)
 			{
-				if (i > monsters.Count)
-					DrawNewCharacterToGame(Controls, Properties.Resources.Left);
+				if (i >= monsters.Count)
+					BeginInvoke(new MethodInvoker(delegate
+					{
+						monsters.Add(DrawNewCharacterToGame(Controls, Properties.Resources.red_guy));
+					}));
 				monsters.ElementAt(i).Left = game.Monsters.ElementAt(i).X;
 				monsters.ElementAt(i).Top = game.Monsters.ElementAt(i).Y;
 			}
 			while (monsters.Count > i)
 			{
+				Console.WriteLine("Removing monster");
 				RemoveCharacterFromForm(monsters.ElementAt(i));
 				monsters.RemoveAt(i);
 			}
 
-			if (_game.Coins.Count != game.Coins.Count)
+			if (coins.Count != game.Coins.Count)
 			{
-				//ToDo update coins
+				foreach(var coin in coins)
+				{
+					RemoveCharacterFromForm(coin);
+				}
+				coins.Clear();
+				BeginInvoke(new MethodInvoker(delegate
+				{
+					for (i = 0; i < game.Coins.Count; i++)
+					{
+						coins.Add(DrawNewCharacterToGame(Controls, Properties.Resources.cccc));
+						coins.ElementAt(i).Left = game.Coins.ElementAt(i).X;
+						coins.ElementAt(i).Top = game.Coins.ElementAt(i).Y;
+					}
+				}));
+			}
+		}
+
+		private void UpdatePlayerPosition(Game game, int i)
+		{
+			players.ElementAt(i).Left = game.Players.ElementAt(i).Value.X;
+			players.ElementAt(i).Top = game.Players.ElementAt(i).Value.Y;
+			switch (game.Players.ElementAt(i).Value.Direction)
+			{
+				case Direction.Up:
+					players.ElementAt(i).Image = Properties.Resources.Up;
+					break;
+				case Direction.Down:
+					players.ElementAt(i).Image = Properties.Resources.Down;
+					break;
+				case Direction.Left:
+					players.ElementAt(i).Image = Properties.Resources.Left;
+					break;
+				case Direction.Right:
+					players.ElementAt(i).Image = Properties.Resources.Right;
+					break;
 			}
 		}
 

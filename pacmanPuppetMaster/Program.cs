@@ -80,9 +80,8 @@ namespace PuppetMaster
 						proc.CloseMainWindow();
 						proc.Close();
 						}
-						catch (System.InvalidOperationException)
+						catch (InvalidOperationException)
 						{
-
 						}
 					}
 					Environment.Exit(1);

@@ -1,16 +1,12 @@
 using Shared;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Runtime.Remoting.Channels;
-using System.Runtime.Remoting.Channels.Tcp;
-using System.Timers;
 
 namespace pacmanClient
 {
 	public class ServiceClient : MarshalByRefObject, IServiceClient
 	{
-		string _serverPId;
+		//string _serverPId;
 		Form1 _form;
 
 		public ServiceClient(string pID, Form1 form)

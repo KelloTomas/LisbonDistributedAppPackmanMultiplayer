@@ -7,22 +7,30 @@ namespace Shared
 	[Serializable]
 	public class Position
 	{
-		public int Y { get; set; }
-		public int X { get; set; }
+		public int Y { get; set; } = 0;
+		public int X { get; set; } = 0;
+	}
+
+	[Serializable]
+	public class Obsticle
+	{
+		public Position Corner1 { get; set; }
+		public Position Corner2 { get; set; }
 	}
 
 	[Serializable]
 	public class Character : Position
 	{
-		public Direction Direction { get; set; }
+		public Direction Direction { get; set; } = Direction.No;
 	}
 
 	[Serializable]
 	public class Game
 	{
-		public Dictionary<string, Character> Players { get; set; }
-		public List<Character> Monsters { get; set; }
-		public List<Position> Coins { get; set; }
+		public Dictionary<string, Character> Players { get; set; } = new Dictionary<string, Character>();
+		public List<Character> Monsters { get; set; } = new List<Character>();
+		public List<Position> Coins { get; set; } = new List<Position>();
+		public List<Obsticle> Obsticles { get; set; } = new List<Obsticle>();
 	}
 
 	[Serializable]

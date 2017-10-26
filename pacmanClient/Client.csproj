@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{ECE5A838-E181-493A-B9A2-6ADD01DE37F6}</ProjectGuid>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>pacmanClient</RootNamespace>
     <AssemblyName>pacmanClient</AssemblyName>
@@ -31,6 +31,9 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -92,7 +95,7 @@
     <None Include="Resources\coint2.gif" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\down.gif" />
+    <None Include="Resources\Down.gif" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Right.gif" />
