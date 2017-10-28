@@ -24,6 +24,11 @@ namespace Shared
 		public Direction Direction { get; set; } = Direction.No;
 	}
 
+	public interface IServiceClientWithState : IServiceClient
+	{
+		State State { get; set; }
+	}
+
 	[Serializable]
 	public class Game
 	{
@@ -61,6 +66,13 @@ namespace Shared
 		IP,
 		Port,
 		Link
+	}
+
+	public enum State
+	{
+		Playing,
+		Dead,
+		Disconnected
 	}
 
 	public static class Shared

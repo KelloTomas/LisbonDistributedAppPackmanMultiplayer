@@ -77,8 +77,8 @@ namespace PuppetMaster
 						// window can be already closed
 						try
 						{
-						proc.CloseMainWindow();
-						proc.Close();
+							proc.CloseMainWindow();
+							proc.Close();
 						}
 						catch (InvalidOperationException)
 						{

@@ -4,12 +4,14 @@ using System.Collections.Generic;
 
 namespace pacmanClient
 {
-	public class ServiceClient : MarshalByRefObject, IServiceClient
+	public class ServiceClientWithState : MarshalByRefObject, IServiceClientWithState
 	{
 		//string _serverPId;
 		Form1 _form;
 
-		public ServiceClient(string pID, Form1 form)
+		public State State { get; set; } = State.Playing;
+
+		public ServiceClientWithState(string pID, Form1 form)
 		{
 			_form = form;
 		}
@@ -29,33 +31,39 @@ namespace pacmanClient
 			_form.UpdateGame(game);
 		}
 
+		public void Crash()
+		{
+			_form.Crash();
+		}
+
 #region IController
 
 		public void GlobalStatus()
 		{
-			throw new NotImplementedException();
+			_form.GlobalStatus();
 		}
 
 		public void InjectDelay(string PID, int mSecDelay)
 		{
-			throw new NotImplementedException();
+			_form.InjectDelay();
 		}
 
 		public void Freez()
 		{
-			throw new NotImplementedException();
+			_form.Freez();
 		}
 
 		public void UnFreez()
 		{
-			throw new NotImplementedException();
+			_form.UnFreez();
 		}
 
 		public string LocalState(int roundId)
 		{
-			throw new NotImplementedException();
+			return _form.LocalState();
 		}
-#endregion
+
+		#endregion
 	}
 }
  

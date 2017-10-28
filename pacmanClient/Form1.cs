@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels;
@@ -22,14 +23,18 @@ namespace pacmanClient {
 		private List<PictureBox> players = new List<PictureBox>();
 		private List<PictureBox> monsters = new List<PictureBox>();
 		private List<PictureBox> coins = new List<PictureBox>();
+
+
 		private int _roundId = 0;
 		private Game _game;
-		private ServiceClient serviceClient;
+		private State _state = State.Playing;
+		private ServiceClientWithState serviceClient;
 		private TcpChannel channel;
 		private System.Timers.Timer _timer;
 		private static IServiceServer server;
 		private string _pId;
-		private Dictionary<string, IServiceClient> _clients = new Dictionary<string, IServiceClient>();
+		private Dictionary<string, IServiceClientWithState> _clients = new Dictionary<string, IServiceClientWithState>();
+
 		#endregion
 
 		#region constructor...
@@ -61,7 +66,7 @@ namespace pacmanClient {
 			ChannelServices.RegisterChannel(channel, true);
 
 			/*set service */
-			serviceClient = new ServiceClient(_pId, this);
+			serviceClient = new ServiceClientWithState(_pId, this);
 			RemotingServices.Marshal(serviceClient, Shared.Shared.ParseUrl(URLparts.Link, myURL));
 
 			/* get service */
@@ -83,7 +88,7 @@ namespace pacmanClient {
 		}
 		#endregion
 
-#region controller handler
+		#region controller handler
 		private void KeyIsDown(object sender, KeyEventArgs e) {
             if (e.KeyCode == Keys.Left) {
 				_direction = Direction.Left;
@@ -116,7 +121,15 @@ namespace pacmanClient {
         }
 
         private void Timer_Tick(object sender, EventArgs e) {
-			server.SetMove(_pId, _roundId++, _direction);
+			if (_state == State.Dead)
+			{
+				_timer.Stop();
+				_timer.Dispose();
+			}
+			else
+			{
+				server.SetMove(_pId, _roundId++, _direction);
+			}
         }
 
         private void TbMsg_KeyDown(object sender, KeyEventArgs e) {
@@ -128,11 +141,12 @@ namespace pacmanClient {
                 tbChat.Text += "\r\n" + tbMsg.Text;
 				tbMsg.Clear();
 				tbMsg.Enabled = false;
-				this.Focus();
+				Focus();
             }
         }
-#endregion
+		#endregion
 
+		#region Client service...
 		public void GameStarted(string serverPId, List<Client> clients, Game game)
 		{
 			_game = game;
@@ -149,7 +163,7 @@ namespace pacmanClient {
 			{
 				if (client.PId == _pId)
 					continue;
-				_clients.Add(client.PId, (IServiceClient)Activator.GetObject(
+				_clients.Add(client.PId, (IServiceClientWithState)Activator.GetObject(
 				typeof(IServiceClient),
 				client.URL));
 			}
@@ -160,14 +174,14 @@ namespace pacmanClient {
 			picture.Dispose();
 		}
 
-		private PictureBox DrawNewCharacterToGame(Control.ControlCollection Controls, Bitmap picture)
+		private PictureBox DrawNewCharacterToGame(Control.ControlCollection Controls, Bitmap picture, int size)
 		{
 			PictureBox ghost = new PictureBox();
 
 			((ISupportInitialize)(ghost)).BeginInit();
 			ghost.BackColor = Color.Transparent;
 			ghost.Image = picture;
-			ghost.Size = new Size(30, 30);
+			ghost.Size = new Size(size, size);
 			ghost.SizeMode = PictureBoxSizeMode.Zoom;
 			/*
 			ghost.Location = new Point(180, 73);
@@ -208,7 +222,7 @@ namespace pacmanClient {
 				if (i >= players.Count)
 					BeginInvoke(new MethodInvoker(delegate
 					{
-						players.Add(DrawNewCharacterToGame(Controls, Properties.Resources.Right));
+						players.Add(DrawNewCharacterToGame(Controls, Properties.Resources.Right, 25));
 						UpdatePlayerPosition(game, i);
 					}));
 				else
@@ -225,7 +239,7 @@ namespace pacmanClient {
 				if (i >= monsters.Count)
 					BeginInvoke(new MethodInvoker(delegate
 					{
-						monsters.Add(DrawNewCharacterToGame(Controls, Properties.Resources.red_guy));
+						monsters.Add(DrawNewCharacterToGame(Controls, Properties.Resources.red_guy, 30));
 					}));
 				monsters.ElementAt(i).Left = game.Monsters.ElementAt(i).X;
 				monsters.ElementAt(i).Top = game.Monsters.ElementAt(i).Y;
@@ -248,9 +262,10 @@ namespace pacmanClient {
 				{
 					for (i = 0; i < game.Coins.Count; i++)
 					{
-						coins.Add(DrawNewCharacterToGame(Controls, Properties.Resources.cccc));
+						coins.Add(DrawNewCharacterToGame(Controls, Properties.Resources.coint2, 15));
 						coins.ElementAt(i).Left = game.Coins.ElementAt(i).X;
 						coins.ElementAt(i).Top = game.Coins.ElementAt(i).Y;
+						Console.WriteLine($"minca na: {coins.ElementAt(i).Left}, {coins.ElementAt(i).Top}");
 					}
 				}));
 			}
@@ -284,5 +299,56 @@ namespace pacmanClient {
 				tbChat.Text += $"{pId}: {msg}\r\n";
 			}));
 		}
-    }
+
+		internal void Crash()
+		{
+			_state = State.Dead;
+		}
+		#endregion
+
+		#region Control service...
+		internal void GlobalStatus()
+		{
+			foreach(var client in _clients)
+			{
+				Console.WriteLine($"client: {client.Key} is in state {(client.Value == null?"offline":"online")}");
+			}
+		}
+		internal void InjectDelay()
+		{
+			throw new NotImplementedException();
+		}
+		internal void Freez()
+		{
+			throw new NotImplementedException();
+		}
+		internal void UnFreez()
+		{
+			throw new NotImplementedException();
+		}
+		internal string LocalState()
+		{
+			string output = "";
+			foreach (var monster in _game.Monsters)
+			{
+				output += $"M, {monster.X}, {monster.Y}\n\r";
+			}
+			foreach (var monster in _game.Monsters)
+			{
+				output += $"M, {monster.X}, {monster.Y}\n\r";
+			}
+			foreach (var player in _game.Players)
+			{
+				if (player.Key == _pId)
+					output += $"{_pId}, {_state}, {player.Value.X}, {player.Value.Y}\n\r";
+				else
+					output += $"{player.Key}, {_clients[player.Key].State}, {player.Value.X}, {player.Value.Y}\n\r";
+			}
+			StreamWriter sw = new StreamWriter($"LocalState-{_pId}-{_roundId}");
+			sw.Write(output);
+			sw.Close();
+			return output;
+		}
+#endregion
+	}
 }
