@@ -15,7 +15,9 @@ namespace pacmanServer
 {
 	public class Program
 	{
-        #region private fields...
+		#region private fields...
+		Obsticle Board;
+
 		string _pId;
 		int _maxNumPlayers;
 		int _numPlayers = 0;
@@ -35,6 +37,12 @@ namespace pacmanServer
 
 		void Init(string[] args)
 		{
+			Board = new Obsticle();
+			Board.Corner2.X = 320;
+			Board.Corner2.Y = 280;
+			Board.Corner1.X = 0;
+			Board.Corner1.Y = 40;
+
 			_pId = args[0];
 			string myURL = args[1];
 			int mSec = int.Parse(args[2]);
@@ -103,7 +111,7 @@ namespace pacmanServer
 			{
                 foreach (Obsticle obsticle in _game.Obsticles)
                 {
-				    if(CheckIntersection(monster, Shared.CharactersSize.Monster, obsticle))
+				    if(CheckIntersection(monster, CharactersSize.Monster, obsticle))
 				    {
 					    switch (monster.Direction)
 					    {
@@ -121,6 +129,12 @@ namespace pacmanServer
 							    break;
 					    }
 				    }
+					else
+					{
+						Direction tmp = CheckIntersectionWithBorder(monster);
+						if (tmp != Direction.No)
+							monster.Direction = tmp;
+					}
                 }
 			}
 			foreach (var client in _clientsDict)
@@ -133,24 +147,32 @@ namespace pacmanServer
 			}
 		}
 
-        private System.Windows.Forms.PictureBox b1 = new System.Windows.Forms.PictureBox();
-        private System.Windows.Forms.PictureBox b2 = new System.Windows.Forms.PictureBox();
+		private Direction CheckIntersectionWithBorder(Character character)
+		{
+			if (character.X < Board.Corner1.X)
+				return Direction.Right;
+			if (character.X > Board.Corner1.X + Board.Corner2.X)
+				return Direction.Left;
+			if (character.Y < Board.Corner1.Y)
+				return Direction.Down;
+			if (character.Y > Board.Corner1.Y + Board.Corner2.Y)
+				return Direction.Up;
+			return Direction.No;
+		}
+
+		private System.Drawing.Rectangle b1 = new System.Drawing.Rectangle();
+        private System.Drawing.Rectangle b2 = new System.Drawing.Rectangle();
         private bool CheckIntersection(Character monster, int size, Obsticle obsticle)
         {
-            b1.Left = monster.X;
-            b1.Top = monster.Y;
+            b1.X = monster.X;
+            b1.Y = monster.Y;
             b1.Width = size;
             b1.Height = size;
-            b2.Left = obsticle.Corner1.X;
-            b2.Top = obsticle.Corner1.Y;
+            b2.X = obsticle.Corner1.X;
+            b2.Y = obsticle.Corner1.Y;
             b2.Width = obsticle.Corner2.X;
             b2.Height = obsticle.Corner2.Y;
-            bool intersec =  b1.Bounds.IntersectsWith(b2.Bounds);
-            if (intersec)
-            {
-                Console.WriteLine(b1.Left + " " + b1.Top + " " + b1.Width + " " + b1.Height);
-                Console.WriteLine(b2.Left + " " + b2.Top + " " + b2.Width + " " + b2.Height);
-            }
+            bool intersec = b1.IntersectsWith(b2);
             return intersec;
         }
 

@@ -26,6 +26,11 @@ namespace Shared
 	[Serializable]
 	public class Obsticle
 	{
+		public Obsticle()
+		{
+			Corner1 = new Position();
+			Corner2 = new Position();
+		}
 		public Position Corner1 { get; set; }
 		public Position Corner2 { get; set; }
 	}

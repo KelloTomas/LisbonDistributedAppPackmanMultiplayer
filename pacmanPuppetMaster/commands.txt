@@ -1,5 +1,5 @@
-StartServer myServer PCSnotUsed tcp://localhost:8085/ServerServicesName 2000 1
+StartServer myServer PCSnotUsed tcp://localhost:8085/ServerServicesName 200 1
 Wait 1000
-StartClient myClient1 PCSnotUsed tcp://localhost:8086/ClientServicesName 2000 1
+StartClient myClient1 PCSnotUsed tcp://localhost:8086/ClientServicesName 200 1
 #StartClient myClient2 PCSnotUsed tcp://localhost:8087/ClientServicesName 2000 2
 
