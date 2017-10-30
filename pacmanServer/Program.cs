@@ -15,8 +15,7 @@ namespace pacmanServer
 {
 	public class Program
 	{
-		#region private fields...
-		List<Obsticle> obsticles = new List<Obsticle>();
+        #region private fields...
 		string _pId;
 		int _maxNumPlayers;
 		int _numPlayers = 0;
@@ -27,7 +26,6 @@ namespace pacmanServer
 		ServiceServer serviceServer;
 		private List<Client> _clientsList = new List<Client>();
 		private Dictionary<string, IServiceClient> _clientsDict = new Dictionary<string, IServiceClient>();
-		private Position monsterSize = new Position() { X = 30, Y = 30 };
 		#endregion
 
 		static void Main(string[] args)
@@ -51,7 +49,7 @@ namespace pacmanServer
 			/*set service */
 			serviceServer = new ServiceServer(this);
 			string link = Shared.Shared.ParseUrl(URLparts.Link, myURL);
-			Console.WriteLine($"Starting server on {myURL}, link: {link}");
+			Console.WriteLine("Starting server on " + myURL + ", link: " + link);
 			RemotingServices.Marshal(serviceServer, link);
 			Console.WriteLine("Write \"q\" to quit");
 			while (Console.ReadLine() != "q") ;
@@ -103,100 +101,28 @@ namespace pacmanServer
 			}
 			foreach (Character monster in _game.Monsters)
 			{
-				if(IntersectsWithObsticle(monster))
-				{
-					switch (monster.Direction)
-					{
-						case Direction.Up:
-							monster.Direction = Direction.Down;
-							break;
-						case Direction.Down:
-							monster.Direction = Direction.Up;
-							break;
-						case Direction.Right:
-							monster.Direction = Direction.Left;
-							break;
-						case Direction.Left:
-							monster.Direction = Direction.Right;
-							break;
-					}
-				}
+                foreach (Obsticle obsticle in _game.Obsticles)
+                {
+				    if(CheckIntersection(monster, Shared.CharactersSize.Monster, obsticle))
+				    {
+					    switch (monster.Direction)
+					    {
+						    case Direction.Up:
+							    monster.Direction = Direction.Down;
+							    break;
+						    case Direction.Down:
+							    monster.Direction = Direction.Up;
+							    break;
+						    case Direction.Right:
+							    monster.Direction = Direction.Left;
+							    break;
+						    case Direction.Left:
+							    monster.Direction = Direction.Right;
+							    break;
+					    }
+				    }
+                }
 			}
-			/*
-			_game.Monsters.ElementAt(2).X += _game.Monsters.ElementAt(2).Direction == Direction.Left ? -_speed : _speed;
-
-			_game.Monsters.ElementAt(0).X += _speed;
-			_game.Monsters.ElementAt(0).Y += ghost3y;
-
-			if (_game.Monsters.ElementAt(0).X < boardLeft ||
-				_game.Monsters.ElementAt(0).X > boardRight ||
-				(_game.Monsters.ElementAt(0).Bounds.IntersectsWith(pictureBox1.Bounds)) ||
-				(_game.Monsters.ElementAt(0).Bounds.IntersectsWith(pictureBox2.Bounds)) ||
-				(_game.Monsters.ElementAt(0).Bounds.IntersectsWith(pictureBox3.Bounds)) ||
-				(_game.Monsters.ElementAt(0).Bounds.IntersectsWith(pictureBox4.Bounds)))
-			{
-				ghost3x = -ghost3x;
-			}
-			if (_game.Monsters.ElementAt(0).Top < boardTop || _game.Monsters.ElementAt(0).Top + _game.Monsters.ElementAt(0).Height > boardBottom - 2)
-			{
-				ghost3y = -ghost3y;
-			}
-			*/
-
-
-			/* if the red ghost hits the picture box 4 then wereverse the speed
-			if (redGhost.Bounds.IntersectsWith(pictureBox1.Bounds))
-				ghost1 = -ghost1;
-			*/
-			/* if the red ghost hits the picture box 3 we reverse the speed
-			else if (redGhost.Bounds.IntersectsWith(pictureBox2.Bounds))
-				ghost1 = -ghost1;
-			*/
-			/* if the yellow ghost hits the picture box 1 then wereverse the speed
-			if (yellowGhost.Bounds.IntersectsWith(pictureBox3.Bounds))
-				ghost2 = -ghost2;
-			*/
-			/* if the yellow chost hits the picture box 2 then wereverse the speed
-			else if (yellowGhost.Bounds.IntersectsWith(pictureBox4.Bounds))
-				ghost2 = -ghost2;
-			*/
-			//moving ghosts and bumping with the walls end
-			//for loop to check walls, ghosts and points
-
-			/* ToDo player contact	
-			foreach (Control x in this.Controls)
-			{
-				// checking if the player hits the wall or the ghost, then game is over
-				if (x is PictureBox && x.Tag == "wall" || x.Tag == "ghost")
-				{
-					if (((PictureBox)x).Bounds.IntersectsWith(pacman.Bounds))
-					{
-						pacman.Left = 0;
-						pacman.Top = 25;
-						label2.Text = "GAME OVER";
-						label2.Visible = true;
-						timer1.Stop();
-					}
-				}
-				if (x is PictureBox && x.Tag == "coin")
-				{
-					if (((PictureBox)x).Bounds.IntersectsWith(pacman.Bounds))
-					{
-						this.Controls.Remove(x);
-						score++;
-						//TODO check if all coins where "eaten"
-						if (score == total_coins)
-						{
-							//pacman.Left = 0;
-							//pacman.Top = 25;
-							label2.Text = "GAME WON!";
-							label2.Visible = true;
-							timer1.Stop();
-						}
-					}
-				}
-			}
-			*/
 			foreach (var client in _clientsDict)
 			{
 				client.Value.UpdateGame(_game);
@@ -207,51 +133,35 @@ namespace pacmanServer
 			}
 		}
 
-		private bool IntersectsWithObsticle(Character monster)
-		{
-			Position p = new Position() { X = monster.X, Y = monster.Y };
-			if (IsPointInAnyObsticle(p))
-				return true;
-			p.X += monsterSize.X;
-			if (IsPointInAnyObsticle(p))
-				return true;
-			p.Y += monsterSize.Y;
-			if (IsPointInAnyObsticle(p))
-				return true;
-			p.X -= monsterSize.X;
-			if (IsPointInAnyObsticle(p))
-				return true;
-			return false;
-		}
-
-		private bool IsPointInAnyObsticle(Position p)
-		{
-			foreach(Obsticle obsticle in obsticles)
-			{
-				if (IsPointInObsticle(p, obsticle))
-					return true;
-			}
-			return false;
-		}
-
-		private bool IsPointInObsticle(Position position, Obsticle obsticle)
-		{
-			if (position.X > obsticle.Corner1.X &&
-				position.X < obsticle.Corner1.X + obsticle.Corner2.X &&
-				position.Y > obsticle.Corner1.Y &&
-				position.Y < obsticle.Corner1.Y + obsticle.Corner2.Y)
-				return true;
-			return false;
-		}
+        private System.Windows.Forms.PictureBox b1 = new System.Windows.Forms.PictureBox();
+        private System.Windows.Forms.PictureBox b2 = new System.Windows.Forms.PictureBox();
+        private bool CheckIntersection(Character monster, int size, Obsticle obsticle)
+        {
+            b1.Left = monster.X;
+            b1.Top = monster.Y;
+            b1.Width = size;
+            b1.Height = size;
+            b2.Left = obsticle.Corner1.X;
+            b2.Top = obsticle.Corner1.Y;
+            b2.Width = obsticle.Corner2.X;
+            b2.Height = obsticle.Corner2.Y;
+            bool intersec =  b1.Bounds.IntersectsWith(b2.Bounds);
+            if (intersec)
+            {
+                Console.WriteLine(b1.Left + " " + b1.Top + " " + b1.Width + " " + b1.Height);
+                Console.WriteLine(b2.Left + " " + b2.Top + " " + b2.Width + " " + b2.Height);
+            }
+            return intersec;
+        }
 
 		public bool RegisterPlayer(string pId, string clientURL)
 		{
 			if (_numPlayers == _maxNumPlayers)
 			{
-				Console.WriteLine($"SERVER FULL and playeer {pId} with url {clientURL} try to connect");
+				Console.WriteLine("SERVER FULL and playeer " + pId + " with url " + clientURL + " try to connect");
 				return false;
 			}
-			Console.WriteLine($"Playeer {pId} with url {clientURL} is connected");
+			Console.WriteLine("Playeer " + pId + " with url " + clientURL + " is connected");
 
 			_game.Players.Add(pId, new Character() { X = 8, Y = 40 * (_game.Players.Count + 1) });
 

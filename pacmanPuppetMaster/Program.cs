@@ -33,7 +33,7 @@ namespace PuppetMaster
 			timer.Elapsed += Timer_Elapsed;
 			if (args.Count() >= 1)
 			{
-				Console.WriteLine($"Reading file: {args[0]}");
+				Console.WriteLine("Reading file: " + args[0]);
 				reader = new StreamReader(args[0]);
 				ReadInstFromFile();
 			}
@@ -67,7 +67,7 @@ namespace PuppetMaster
 		{
 			if (string.IsNullOrWhiteSpace(command))
 				return false;
-			Console.WriteLine($"Starting: {command}");
+			Console.WriteLine("Starting: " + command);
 			string[] parts = command.Split(' ');
 			switch (parts[0])
 			{
@@ -86,34 +86,23 @@ namespace PuppetMaster
 					}
 					Environment.Exit(1);
 					return false;
-				case "wait_t":
-					if (timer.Enabled)
-					{
-						moreWait += int.Parse(parts[1]);
-					}
-					else
-					{
-						timer.Interval = int.Parse(parts[1]);
-						timer.Start();
-					}
-					return false;
 				case "StartServer":
 					serverPId = parts[1];
 					serverURL = parts[3];
 					string mSec = parts[4];
 					string numOfPlayers = parts[5];
-					Console.WriteLine($"{ExeFileNameServer} {serverPId} {serverURL} {mSec} {numOfPlayers}");
-					process.Add(System.Diagnostics.Process.Start(Path.Combine("C:\\Users\\kellotom\\source\\repos\\packmanMultiplayer\\pacmanServer\\bin\\Debug", ExeFileNameServer),
-																	$"{serverPId} {serverURL} {mSec} {numOfPlayers}"));
+					Console.WriteLine(ExeFileNameServer + " " + serverPId + " " + serverURL + " " + mSec + " " + numOfPlayers);
+                    process.Add(System.Diagnostics.Process.Start(Path.Combine("..\\..\\..\\pacmanServer\\bin\\Debug", ExeFileNameServer),
+																	serverPId + " " + serverURL + " " + mSec + " " + numOfPlayers));
 					break;
 				case "StartClient":
 					string clientPId = parts[1];
 					string clientURL = parts[3];
 					string clientMSec = parts[4];
 					string filename = parts.Count() == 6 ? null : parts[6];
-					Console.WriteLine($"{ExeFileNameClient} {clientPId} {clientURL} {serverPId} {serverURL} {clientMSec} {filename}");
-					process.Add(System.Diagnostics.Process.Start(Path.Combine("C:\\Users\\kellotom\\source\\repos\\packmanMultiplayer\\pacmanClient\\bin\\Debug", ExeFileNameClient),
-																	$"{clientPId} {clientURL} {serverPId} {serverURL} {clientMSec} {filename}"));
+					Console.WriteLine(ExeFileNameClient + " " + clientPId + " " + clientURL + " " + serverPId + " " + serverURL + " " + clientMSec + " " + filename);
+                    process.Add(System.Diagnostics.Process.Start(Path.Combine("..\\..\\..\\pacmanClient\\bin\\Debug", ExeFileNameClient),
+																	clientPId + " " + clientURL + " " + serverPId + " " + serverURL + " " + clientMSec + " " + filename));
 					break;
 				case "GlobalStatus":
 					break;
@@ -127,11 +116,20 @@ namespace PuppetMaster
 					break;
 				case "LocalState":
 					break;
-				case "Wait":
-					break;
+                case "Wait":
+                    if (timer.Enabled)
+                    {
+                        moreWait += int.Parse(parts[1]);
+                    }
+                    else
+                    {
+                        timer.Interval = int.Parse(parts[1]);
+                        timer.Start();
+                    }
+                    return false;
 				default:
-					Console.WriteLine($"Unknow command {command}");
-					return false;
+					Console.WriteLine("Unknow command " + command);
+                    break;
 			}
 			return true;
 		}

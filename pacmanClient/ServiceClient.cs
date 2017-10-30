@@ -9,7 +9,12 @@ namespace pacmanClient
 		//string _serverPId;
 		Form1 _form;
 
-		public State State { get; set; } = State.Playing;
+        public ServiceClientWithState()
+        {
+            State = State.Playing;
+        }
+
+		public State State { get; set; }
 
 		public ServiceClientWithState(string pID, Form1 form)
 		{

@@ -149,6 +149,7 @@ namespace pacmanClient {
 		#region Client service...
 		public void GameStarted(string serverPId, List<Client> clients, Game game)
 		{
+            Console.WriteLine("game started");
 			_game = game;
 
 			BeginInvoke(new MethodInvoker(delegate
@@ -222,7 +223,7 @@ namespace pacmanClient {
 				if (i >= players.Count)
 					BeginInvoke(new MethodInvoker(delegate
 					{
-						players.Add(DrawNewCharacterToGame(Controls, Properties.Resources.Right, 25));
+						players.Add(DrawNewCharacterToGame(Controls, Properties.Resources.Right, Shared.CharactersSize.Player));
 						UpdatePlayerPosition(game, i);
 					}));
 				else
@@ -239,7 +240,7 @@ namespace pacmanClient {
 				if (i >= monsters.Count)
 					BeginInvoke(new MethodInvoker(delegate
 					{
-						monsters.Add(DrawNewCharacterToGame(Controls, Properties.Resources.red_guy, 30));
+						monsters.Add(DrawNewCharacterToGame(Controls, Properties.Resources.red_guy, Shared.CharactersSize.Monster));
 					}));
 				monsters.ElementAt(i).Left = game.Monsters.ElementAt(i).X;
 				monsters.ElementAt(i).Top = game.Monsters.ElementAt(i).Y;
@@ -262,10 +263,9 @@ namespace pacmanClient {
 				{
 					for (i = 0; i < game.Coins.Count; i++)
 					{
-						coins.Add(DrawNewCharacterToGame(Controls, Properties.Resources.coint2, 15));
+						coins.Add(DrawNewCharacterToGame(Controls, Properties.Resources.coint2, Shared.CharactersSize.coin));
 						coins.ElementAt(i).Left = game.Coins.ElementAt(i).X;
 						coins.ElementAt(i).Top = game.Coins.ElementAt(i).Y;
-						Console.WriteLine($"minca na: {coins.ElementAt(i).Left}, {coins.ElementAt(i).Top}");
 					}
 				}));
 			}
@@ -275,6 +275,7 @@ namespace pacmanClient {
 		{
 			players.ElementAt(i).Left = game.Players.ElementAt(i).Value.X;
 			players.ElementAt(i).Top = game.Players.ElementAt(i).Value.Y;
+            //Console.WriteLine(game.Players.ElementAt(i).Value.Direction);
 			switch (game.Players.ElementAt(i).Value.Direction)
 			{
 				case Direction.Up:
@@ -296,7 +297,7 @@ namespace pacmanClient {
 		{
 			BeginInvoke(new MethodInvoker(delegate
 			{
-				tbChat.Text += $"{pId}: {msg}\r\n";
+				tbChat.Text += pId + ": " + msg + "\r\n";
 			}));
 		}
 
@@ -311,7 +312,7 @@ namespace pacmanClient {
 		{
 			foreach(var client in _clients)
 			{
-				Console.WriteLine($"client: {client.Key} is in state {(client.Value == null?"offline":"online")}");
+				Console.WriteLine("client: " + client.Key + " is in state " + (client.Value == null?"offline":"online"));
 			}
 		}
 		internal void InjectDelay()
@@ -331,20 +332,16 @@ namespace pacmanClient {
 			string output = "";
 			foreach (var monster in _game.Monsters)
 			{
-				output += $"M, {monster.X}, {monster.Y}\n\r";
-			}
-			foreach (var monster in _game.Monsters)
-			{
-				output += $"M, {monster.X}, {monster.Y}\n\r";
+				output += "M, " + monster.X + ", " + monster.Y + "\n\r";
 			}
 			foreach (var player in _game.Players)
 			{
 				if (player.Key == _pId)
-					output += $"{_pId}, {_state}, {player.Value.X}, {player.Value.Y}\n\r";
+					output += _pId + ", " + _state + ", " + player.Value.X + ", " + player.Value.Y + "\n\r";
 				else
-					output += $"{player.Key}, {_clients[player.Key].State}, {player.Value.X}, {player.Value.Y}\n\r";
+					output += player.Key + ", " + _clients[player.Key].State + ", " + player.Value.X + ", " + player.Value.Y + "\n\r";
 			}
-			StreamWriter sw = new StreamWriter($"LocalState-{_pId}-{_roundId}");
+			StreamWriter sw = new StreamWriter("LocalState-" + _pId + "-" + _roundId);
 			sw.Write(output);
 			sw.Close();
 			return output;

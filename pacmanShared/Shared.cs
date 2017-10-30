@@ -4,11 +4,23 @@ using System.Text.RegularExpressions;
 
 namespace Shared
 {
+    public static class CharactersSize
+    {
+        public static int Player = 25;
+        public static int Monster = 30;
+        public static int coin = 15;
+    }
+
 	[Serializable]
 	public class Position
 	{
-		public int Y { get; set; } = 0;
-		public int X { get; set; } = 0;
+        public Position()
+        {
+            Y = 0;
+            X = 0;
+        }
+		public int Y { get; set; }
+		public int X { get; set; }
 	}
 
 	[Serializable]
@@ -21,7 +33,11 @@ namespace Shared
 	[Serializable]
 	public class Character : Position
 	{
-		public Direction Direction { get; set; } = Direction.No;
+        public Character()
+        {
+            Direction = Direction.No;
+        }
+		public Direction Direction { get; set; }
 	}
 
 	public interface IServiceClientWithState : IServiceClient
@@ -29,14 +45,21 @@ namespace Shared
 		State State { get; set; }
 	}
 
-	[Serializable]
-	public class Game
-	{
-		public Dictionary<string, Character> Players { get; set; } = new Dictionary<string, Character>();
-		public List<Character> Monsters { get; set; } = new List<Character>();
-		public List<Position> Coins { get; set; } = new List<Position>();
-		public List<Obsticle> Obsticles { get; set; } = new List<Obsticle>();
-	}
+    [Serializable]
+    public class Game
+    {
+        public Game()
+        {
+            Players = new Dictionary<string, Character>();
+            Monsters = new List<Character>();
+            Coins = new List<Position>();
+            Obsticles = new List<Obsticle>();
+        }
+        public Dictionary<string, Character> Players { get; set; }
+        public List<Character> Monsters { get; set; }
+        public List<Position> Coins { get; set; }
+        public List<Obsticle> Obsticles { get; set; }
+    }
 
 	[Serializable]
 	public class Client
