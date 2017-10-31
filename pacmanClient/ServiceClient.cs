@@ -36,12 +36,12 @@ namespace pacmanClient
 			_form.UpdateGame(game);
 		}
 
-		public void Crash()
+        #region IController
+
+        public void Crash()
 		{
 			_form.Crash();
 		}
-
-#region IController
 
 		public void GlobalStatus()
 		{

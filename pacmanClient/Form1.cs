@@ -304,12 +304,14 @@ namespace pacmanClient {
 		internal void Crash()
 		{
 			_state = State.Dead;
+            Close();
 		}
 		#endregion
 
 		#region Control service...
 		internal void GlobalStatus()
 		{
+            Console.WriteLine("Global Status:");
 			foreach(var client in _clients)
 			{
 				Console.WriteLine("client: " + client.Key + " is in state " + (client.Value == null?"offline":"online"));

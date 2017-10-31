@@ -22,13 +22,13 @@ namespace CommonTypes
 		}
         public void Crash()
         {
-
+            _program.Crash();
         }
 
 #region IController
 		public void GlobalStatus()
 		{
-			throw new NotImplementedException();
+            _program.GlobalStatus();
 		}
 
 		public string LocalState(int roundId)

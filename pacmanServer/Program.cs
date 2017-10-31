@@ -237,5 +237,13 @@ namespace pacmanServer
 		{
 			_game.Players[pId].Direction = direction;
 		}
+        public void Crash()
+        {
+            Environment.Exit(0);   
+        }
+        public void GlobalStatus()
+        {
+            Console.WriteLine("Global Status:");
+        }
 	}
 }

@@ -8,6 +8,7 @@ using System.Runtime.Remoting.Channels.Tcp;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
+using System.Diagnostics;
 
 namespace PuppetMaster
 {
@@ -15,9 +16,10 @@ namespace PuppetMaster
 	{
 		StreamReader reader = null;
 		Timer timer;
-		List<System.Diagnostics.Process> process = new List<System.Diagnostics.Process>();
+		List<Process> process = new List<Process>();
         Dictionary<string, string> urls = new Dictionary<string, string>();
-		const string ExeFileNameServer = "pacmanServer.exe";
+        Dictionary<string, ICommands> activators = new Dictionary<string, ICommands>();
+        const string ExeFileNameServer = "pacmanServer.exe";
 		const string ExeFileNameClient = "pacmanClient.exe";
 		int moreWait = 0;
 		string serverURL = "";
@@ -71,14 +73,16 @@ namespace PuppetMaster
 		}
 		bool ParseCommand(string command)
 		{
-			if (string.IsNullOrWhiteSpace(command))
+            ICommands program;
+            string processPId;
+            if (string.IsNullOrWhiteSpace(command))
 				return false;
 			Console.WriteLine("Starting: " + command);
 			string[] parts = command.Split(' ');
 			switch (parts[0])
 			{
 				case "q":
-					foreach (System.Diagnostics.Process proc in process)
+					foreach (Process proc in process)
 					{
 						// window can be already closed
 						try
@@ -98,9 +102,18 @@ namespace PuppetMaster
 					string mSec = parts[4];
 					string numOfPlayers = parts[5];
 					Console.WriteLine(ExeFileNameServer + " " + serverPId + " " + serverURL + " " + mSec + " " + numOfPlayers);
-                    process.Add(System.Diagnostics.Process.Start(Path.Combine("..\\..\\..\\pacmanServer\\bin\\Debug", ExeFileNameServer),
+                    process.Add(Process.Start(Path.Combine("..\\..\\..\\pacmanServer\\bin\\Debug", ExeFileNameServer),
 																	serverPId + " " + serverURL + " " + mSec + " " + numOfPlayers));
                     urls.Add(serverPId, serverURL);
+                    program = (ICommands)Activator.GetObject(typeof(ICommands), serverURL);
+                    if (program == null)
+                    {
+                        Console.WriteLine("Could not locate process");
+                    }
+                    else
+                    {
+                        activators.Add(serverPId, program);
+                    }
                     break;
 				case "StartClient":
 					string clientPId = parts[1];
@@ -108,25 +121,37 @@ namespace PuppetMaster
 					string clientMSec = parts[4];
 					string filename = parts.Count() == 6 ? null : parts[6];
 					Console.WriteLine(ExeFileNameClient + " " + clientPId + " " + clientURL + " " + serverPId + " " + serverURL + " " + clientMSec + " " + filename);
-                    process.Add(System.Diagnostics.Process.Start(Path.Combine("..\\..\\..\\pacmanClient\\bin\\Debug", ExeFileNameClient),
+                    process.Add(Process.Start(Path.Combine("..\\..\\..\\pacmanClient\\bin\\Debug", ExeFileNameClient),
 																	clientPId + " " + clientURL + " " + serverPId + " " + serverURL + " " + clientMSec + " " + filename));
                     urls.Add(clientPId, clientURL);
+                    program = (ICommands)Activator.GetObject(typeof(ICommands), clientURL);
+                    if (program == null)
+                    {
+                        Console.WriteLine("Could not locate process");
+                    }
+                    else
+                    {
+                        activators.Add(clientPId, program);
+                    }
                     break;
 				case "GlobalStatus":
-					break;
-				case "Crash":
-                    string processPId = parts[1];
-                    string url;
-                    if(urls.TryGetValue(processPId, out url))
+                    foreach(KeyValuePair<string, ICommands> pair in activators)
                     {
-                        IServiceClient process = (IServiceClient)Activator.GetObject(typeof(IServiceClient), url);
-                        if (process == null)
+                        Console.WriteLine(pair.Key);
+                        pair.Value.GlobalStatus();   
+                    }
+                    break;
+				case "Crash":
+                    processPId = parts[1];
+                    if(activators.TryGetValue(processPId, out program))
+                    {
+                        if (program == null)
                         {
                             Console.WriteLine("Could not locate process");
                         }
                         else
                         {
-                            process.Crash();
+                            program.Crash();
                         }
                     }
                     break;
