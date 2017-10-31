@@ -50,7 +50,7 @@ namespace pacmanClient
 
 		public void InjectDelay(string PID, int mSecDelay)
 		{
-			_form.InjectDelay();
+			_form.InjectDelay(PID, mSecDelay);
 		}
 
 		public void Freez()

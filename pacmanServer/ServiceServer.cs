@@ -20,13 +20,13 @@ namespace CommonTypes
 		{
 			_program.SetMove(pId, roundId, direction);
 		}
+
+        #region IController
         public void Crash()
         {
             _program.Crash();
         }
-
-#region IController
-		public void GlobalStatus()
+        public void GlobalStatus()
 		{
             _program.GlobalStatus();
 		}
@@ -48,7 +48,7 @@ namespace CommonTypes
 
 		public void InjectDelay(string PID, int mSecDelay)
 		{
-			throw new NotImplementedException();
+            _program.InjectDelay(PID, mSecDelay);
 		}
 #endregion
 	}
