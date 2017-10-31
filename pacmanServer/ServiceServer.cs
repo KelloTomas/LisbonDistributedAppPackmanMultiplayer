@@ -20,6 +20,10 @@ namespace CommonTypes
 		{
 			_program.SetMove(pId, roundId, direction);
 		}
+        public void Crash()
+        {
+
+        }
 
 #region IController
 		public void GlobalStatus()

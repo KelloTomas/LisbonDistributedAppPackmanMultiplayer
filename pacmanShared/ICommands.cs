@@ -11,5 +11,6 @@ namespace Shared
 		void Freez();
 		void UnFreez();
 		string LocalState(int roundId);
+        void Crash();
 	}
 }

@@ -1,7 +1,10 @@
-﻿using System;
+﻿using Shared;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Remoting.Channels;
+using System.Runtime.Remoting.Channels.Tcp;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
@@ -13,6 +16,7 @@ namespace PuppetMaster
 		StreamReader reader = null;
 		Timer timer;
 		List<System.Diagnostics.Process> process = new List<System.Diagnostics.Process>();
+        Dictionary<string, string> urls = new Dictionary<string, string>();
 		const string ExeFileNameServer = "pacmanServer.exe";
 		const string ExeFileNameClient = "pacmanClient.exe";
 		int moreWait = 0;
@@ -26,7 +30,9 @@ namespace PuppetMaster
 
 		void Init(string[] args)
 		{
-			timer = new Timer
+            TcpChannel channel = new TcpChannel();
+            ChannelServices.RegisterChannel(channel, true);
+            timer = new Timer
 			{
 				AutoReset = false
 			};
@@ -94,7 +100,8 @@ namespace PuppetMaster
 					Console.WriteLine(ExeFileNameServer + " " + serverPId + " " + serverURL + " " + mSec + " " + numOfPlayers);
                     process.Add(System.Diagnostics.Process.Start(Path.Combine("..\\..\\..\\pacmanServer\\bin\\Debug", ExeFileNameServer),
 																	serverPId + " " + serverURL + " " + mSec + " " + numOfPlayers));
-					break;
+                    urls.Add(serverPId, serverURL);
+                    break;
 				case "StartClient":
 					string clientPId = parts[1];
 					string clientURL = parts[3];
@@ -103,11 +110,26 @@ namespace PuppetMaster
 					Console.WriteLine(ExeFileNameClient + " " + clientPId + " " + clientURL + " " + serverPId + " " + serverURL + " " + clientMSec + " " + filename);
                     process.Add(System.Diagnostics.Process.Start(Path.Combine("..\\..\\..\\pacmanClient\\bin\\Debug", ExeFileNameClient),
 																	clientPId + " " + clientURL + " " + serverPId + " " + serverURL + " " + clientMSec + " " + filename));
-					break;
+                    urls.Add(clientPId, clientURL);
+                    break;
 				case "GlobalStatus":
 					break;
 				case "Crash":
-					break;
+                    string processPId = parts[1];
+                    string url;
+                    if(urls.TryGetValue(processPId, out url))
+                    {
+                        IServiceClient process = (IServiceClient)Activator.GetObject(typeof(IServiceClient), url);
+                        if (process == null)
+                        {
+                            Console.WriteLine("Could not locate process");
+                        }
+                        else
+                        {
+                            process.Crash();
+                        }
+                    }
+                    break;
 				case "Freeze":
 					break;
 				case "Unfreeze":
