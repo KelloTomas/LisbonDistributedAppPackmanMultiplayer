@@ -2,15 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 
@@ -35,7 +32,6 @@ namespace pacmanClient {
 		private string _pId;
 		private Dictionary<string, IServiceClientWithState> _clients = new Dictionary<string, IServiceClientWithState>();
 		private int _score = 0;
-
 		#endregion
 
 		#region constructor...
@@ -173,7 +169,7 @@ namespace pacmanClient {
 				}
 				foreach(var coin in game.Coins)
 				{
-					coins.Add(DrawNewCharacterToGame(Controls, Properties.Resources.cccc, CharactersSize.coin));
+					coins.Add(DrawNewCharacterToGame(Controls, Properties.Resources.coinPNG, CharactersSize.coin));
 				}
 			}));
 			_timer.Start();
@@ -192,7 +188,7 @@ namespace pacmanClient {
 			picture.Dispose();
 		}
 
-		private PictureBox DrawNewCharacterToGame(Control.ControlCollection Controls, Image picture, int size)
+		private PictureBox DrawNewCharacterToGame(Control.ControlCollection Controls, Bitmap picture, int size)
 		{
 			PictureBox ghost = new PictureBox();
 
@@ -244,7 +240,7 @@ namespace pacmanClient {
 				monsters.ElementAt(i).Top = game.Monsters.ElementAt(i).Y;
 			}
 
-			//if (coins.Count != game.Coins.Count)
+			if (coins.Count != game.Coins.Count)
 			{
 				int i;
 				for (i = 0; i < game.Coins.Count; i++)
@@ -274,7 +270,6 @@ namespace pacmanClient {
 				}
 			players.ElementAt(i).Left = game.Players.ElementAt(i).Value.X;
 			players.ElementAt(i).Top = game.Players.ElementAt(i).Value.Y;
-            //Console.WriteLine(game.Players.ElementAt(i).Value.Direction);
 			switch (game.Players.ElementAt(i).Value.Direction)
 			{
 				case Direction.Up:

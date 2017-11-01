@@ -63,9 +63,9 @@ namespace pacmanClient.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap cccc {
+        internal static System.Drawing.Bitmap coinGIF1 {
             get {
-                object obj = ResourceManager.GetObject("cccc", resourceCulture);
+                object obj = ResourceManager.GetObject("coinGIF1", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -73,9 +73,9 @@ namespace pacmanClient.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap coin {
+        internal static System.Drawing.Bitmap coinGIF2 {
             get {
-                object obj = ResourceManager.GetObject("coin", resourceCulture);
+                object obj = ResourceManager.GetObject("coinGIF2", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -83,9 +83,19 @@ namespace pacmanClient.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap coint2 {
+        internal static System.Drawing.Bitmap coinPNG {
             get {
-                object obj = ResourceManager.GetObject("coint2", resourceCulture);
+                object obj = ResourceManager.GetObject("coinPNG", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap cointGIF3 {
+            get {
+                object obj = ResourceManager.GetObject("cointGIF3", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
