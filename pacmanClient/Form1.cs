@@ -84,7 +84,12 @@ namespace pacmanClient {
 
 		internal void CrashWithMonster()
 		{
-			_state = State.Dead;
+			BeginInvoke(new MethodInvoker(delegate
+			{
+				label2.Visible = true;
+				label2.Text = "Game Over";
+				_state = State.Dead;
+			}));
 		}
 		#endregion
 
@@ -258,14 +263,15 @@ namespace pacmanClient {
 
 		private void UpdatePlayerPosition(Game game, int i)
 		{
-			if (game.Players.ElementAt(i).Value.Score != _score)
-			{
-				_score = game.Players.ElementAt(i).Value.Score;
-				BeginInvoke(new MethodInvoker(delegate
+			if (game.Players.ElementAt(i).Key == _pId)
+				if (game.Players.ElementAt(i).Value.Score != _score)
 				{
-					label1.Text = "Score: " + _score;
-				}));
-			}
+					_score = game.Players.ElementAt(i).Value.Score;
+					BeginInvoke(new MethodInvoker(delegate
+					{
+						label1.Text = "Score: " + _score;
+					}));
+				}
 			players.ElementAt(i).Left = game.Players.ElementAt(i).Value.X;
 			players.ElementAt(i).Top = game.Players.ElementAt(i).Value.Y;
             //Console.WriteLine(game.Players.ElementAt(i).Value.Direction);

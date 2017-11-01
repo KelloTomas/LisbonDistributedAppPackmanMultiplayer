@@ -2,6 +2,7 @@
 using Shared;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels;
@@ -23,7 +24,7 @@ namespace pacmanServer
 		int _numPlayers = 0;
 		Game _game = new Game();
 		private TcpChannel channel;
-		int _speed = 5;
+		const int _speed = 5;
 		System.Timers.Timer _timer;
 		ServiceServer serviceServer;
 		private List<Client> _clientsList = new List<Client>();
@@ -75,14 +76,21 @@ namespace pacmanServer
 			{
 				if (CheckIntersectionWithObsticleOrBorder(player.Value))
 				{
-					_clientsDict[player.Key].CrashWithMonster();
+					UpdateCharactersPosition(player.Value, true); // move player back
 				}
 				else
 				{
-					if(CheckIntersectionWithCoins(player.Value))
+					if (CheckIntersectionWithMonster(player.Value))
 					{
-						player.Value.Score++;
+						player.Value.X = -CharactersSize.Player;
+						player.Value.Y = 0;
+						_clientsDict[player.Key].CrashWithMonster();
 					}
+					else
+						if(CheckIntersectionWithCoins(player.Value))
+						{
+							player.Value.Score++;
+						}
 				}
 			}
 
@@ -113,7 +121,20 @@ namespace pacmanServer
 				player.Direction = Direction.No;
 			}
 		}
-		
+
+		private bool CheckIntersectionWithMonster(CharacterWithScore player)
+		{
+			foreach(Character monster in _game.Monsters)
+			{
+				if (CheckIntersection(player, monster))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
+
 		private void UpdateGame()
 		{
 			int sec = 0;
@@ -150,15 +171,15 @@ namespace pacmanServer
 			return false;
 		}
 
-		private bool CheckIntersectionWithObsticleOrBorder(Character monster)
+		private bool CheckIntersectionWithObsticleOrBorder(Character character)
 		{
 			foreach (Obsticle obsticle in _game.Obsticles)
 			{
-				if (CheckIntersection(monster, CharactersSize.Monster, obsticle))
+				if (CheckIntersection(character, CharactersSize.Monster, obsticle))
 				{
 					return true;
 				}
-				if (CheckIntersectionWithBorder(monster))
+				if (CheckIntersectionWithBorder(character))
 				{
 					return true;
 				}
@@ -182,21 +203,21 @@ namespace pacmanServer
 			}
 		}
 
-		private void UpdateCharactersPosition(Character character)
+		private void UpdateCharactersPosition(Character character, bool back = false)
 		{
 			switch (character.Direction)
 			{
 				case Direction.Down:
-					character.Y += _speed;
+					character.Y += _speed * (back?-1:1);
 					break;
 				case Direction.Up:
-					character.Y -= _speed;
+					character.Y -= _speed * (back ? -1 : 1);
 					break;
 				case Direction.Left:
-					character.X -= _speed;
+					character.X -= _speed * (back ? -1 : 1);
 					break;
 				case Direction.Right:
-					character.X += _speed;
+					character.X += _speed * (back ? -1 : 1);
 					break;
 				case Direction.No:
 				default:
@@ -206,17 +227,6 @@ namespace pacmanServer
 
 		private bool CheckIntersectionWithBorder(Character character)
 		{
-			/*
-			if (character.X < Board.Corner1.X)
-				return Direction.Right;
-			if (character.X > Board.Corner1.X + Board.Corner2.X)
-				return Direction.Left;
-			if (character.Y < Board.Corner1.Y)
-				return Direction.Down;
-			if (character.Y > Board.Corner1.Y + Board.Corner2.Y)
-				return Direction.Up;
-			return Direction.No;
-			*/
 			if (character.X < Board.Corner1.X ||
 				character.X > Board.Corner1.X + Board.Corner2.X ||
 				character.Y < Board.Corner1.Y ||
@@ -226,18 +236,30 @@ namespace pacmanServer
 				return false;
 		}
 
-		private System.Drawing.Rectangle b1 = new System.Drawing.Rectangle();
-		private System.Drawing.Rectangle b2 = new System.Drawing.Rectangle();
-		private bool CheckIntersection(Character monster, int size, Obsticle obsticle)
+		private Rectangle b1 = new Rectangle();
+		private Rectangle b2 = new Rectangle();
+		private bool CheckIntersection(Character player, Character monster)
 		{
-			b1.X = monster.X;
-			b1.Y = monster.Y;
-			b1.Width = size;
-			b1.Height = size;
+			b2.X = monster.X;
+			b2.Y = monster.Y;
+			b2.Width = CharactersSize.Monster;
+			b2.Height = CharactersSize.Monster;
+			return CheckIntersection(player, CharactersSize.Player, b2);
+		}
+		private bool CheckIntersection(Character character, int characterSize, Obsticle obsticle)
+		{
 			b2.X = obsticle.Corner1.X;
 			b2.Y = obsticle.Corner1.Y;
 			b2.Width = obsticle.Corner2.X;
 			b2.Height = obsticle.Corner2.Y;
+			return CheckIntersection(character, characterSize, b2);
+		}
+		private bool CheckIntersection(Character character, int characterSize, Rectangle obsticle)
+		{
+			b1.X = character.X;
+			b1.Y = character.Y;
+			b1.Width = characterSize;
+			b1.Height = characterSize;
 			bool intersec = b1.IntersectsWith(b2);
 			return intersec;
 		}
