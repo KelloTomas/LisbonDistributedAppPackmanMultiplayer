@@ -7,9 +7,7 @@ using System.Linq;
 using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Timers;
 
 namespace pacmanServer
@@ -17,16 +15,17 @@ namespace pacmanServer
 	public class Program
 	{
 		#region private fields...
-		Obsticle Board;
-		int _delay = 0;
-		string _pId;
-		int _maxNumPlayers;
-		int _numPlayers = 0;
-		Game _game = new Game();
+		private Delays delays = new Delays();
+		private Obsticle Board;
+		private int _delay = 0;
+		private string _pId;
+		private int _maxNumPlayers;
+		private int _numPlayers = 0;
+		private Game _game = new Game();
 		private TcpChannel channel;
-		const int _speed = 5;
-		System.Timers.Timer _timer;
-		ServiceServer serviceServer;
+		private const int _speed = 5;
+		private System.Timers.Timer _timer;
+		private ServiceServer serviceServer;
 		private List<Client> _clientsList = new List<Client>();
 		private Dictionary<string, int> _delays = new Dictionary<string, int>();
 		private Dictionary<string, int> _delays_count = new Dictionary<string, int>();
@@ -84,7 +83,7 @@ namespace pacmanServer
 					{
 						player.Value.X = -CharactersSize.Player;
 						player.Value.Y = 0;
-						_clientsDict[player.Key].GameEnded(false);
+						delays.SendWithDelay(player.Key, (Action<bool>)_clientsDict[player.Key].GameEnded, new object[] { false });
 					}
 					else
 					{
@@ -95,7 +94,7 @@ namespace pacmanServer
 							{
 								foreach (var client in _clientsDict)
 								{
-									client.Value.GameEnded(true);
+									delays.SendWithDelay(client.Key, (Action<bool>)client.Value.GameEnded, new object[] { true });
 								}
 							}
 						}
@@ -131,6 +130,7 @@ namespace pacmanServer
 			}
 		}
 
+
 		private bool CheckIntersectionWithMonster(CharacterWithScore player)
 		{
 			foreach(Character monster in _game.Monsters)
@@ -162,7 +162,7 @@ namespace pacmanServer
 					_delays_count[client.Key] = sec;
 					// Console.WriteLine(_delays_count[client.Key]);
 				}
-				client.Value.GameUpdate(_game);
+				delays.SendWithDelay(client.Key, (Action<Game>)client.Value.GameUpdate, new object[] { _game });
 			}
 		}
 
@@ -343,9 +343,9 @@ namespace pacmanServer
 
 		private void BroadcastGameStart()
 		{
-			foreach (IServiceClient client in _clientsDict.Values)
+			foreach (KeyValuePair<string, IServiceClient> client in _clientsDict)
 			{
-				client.GameStarted(_pId, _clientsList, _game);
+				delays.SendWithDelay(client.Key, (Action<string, List<Client>, Game>)client.Value.GameStarted, new object[] { _pId, _clientsList, _game });
 			}
 			_timer.Start();
 		}
@@ -362,12 +362,15 @@ namespace pacmanServer
 		{
 			Console.WriteLine("Global Status: online");
 		}
-		public void InjectDelay(string PID, int mSecDelay)
+		public void InjectDelay(string pId, int mSecDelay)
 		{
+			/*
 			_delays.Add(PID, mSecDelay);
 			_delays_count.Add(PID, mSecDelay);
 			_delay = mSecDelay;
-			
+			TOMAS
+			 */
+			delays.AddDelay(pId, mSecDelay);
 		}
 	}
 }
