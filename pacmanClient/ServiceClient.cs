@@ -68,6 +68,11 @@ namespace pacmanClient
 			return _form.LocalState();
 		}
 
+		public void CrashWithMonster()
+		{
+			_form.CrashWithMonster();
+		}
+
 		#endregion
 	}
 }

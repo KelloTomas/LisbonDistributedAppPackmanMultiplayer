@@ -1,14 +1,12 @@
-﻿using Shared;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.Remoting.Channels;
-using System.Runtime.Remoting.Channels.Tcp;
-using System.Text;
-using System.Threading.Tasks;
 using System.Timers;
 using System.Diagnostics;
+using Shared;
+using System.Runtime.Remoting.Channels.Tcp;
 
 namespace PuppetMaster
 {

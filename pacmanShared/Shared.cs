@@ -14,6 +14,11 @@ namespace Shared
 	[Serializable]
 	public class Position
 	{
+        public Position(int size)
+		{
+			X = size;
+			Y = size;
+		}
         public Position()
         {
             Y = 0;
@@ -31,6 +36,13 @@ namespace Shared
 			Corner1 = new Position();
 			Corner2 = new Position();
 		}
+
+		public Obsticle(Position coin, Position position)
+		{
+			Corner1 = coin;
+			Corner2 = position;
+		}
+
 		public Position Corner1 { get; set; }
 		public Position Corner2 { get; set; }
 	}
@@ -38,11 +50,21 @@ namespace Shared
 	[Serializable]
 	public class Character : Position
 	{
-        public Character()
-        {
-            Direction = Direction.No;
-        }
+		public Character()
+		{
+			Direction = Direction.No;
+		}
 		public Direction Direction { get; set; }
+	}
+
+	[Serializable]
+	public class CharacterWithScore : Character
+	{
+		public CharacterWithScore()
+		{
+			Score = 0;
+		}
+		public int Score { get; set; }
 	}
 
 	public interface IServiceClientWithState : IServiceClient
@@ -55,12 +77,12 @@ namespace Shared
     {
         public Game()
         {
-            Players = new Dictionary<string, Character>();
+            Players = new Dictionary<string, CharacterWithScore>();
             Monsters = new List<Character>();
             Coins = new List<Position>();
             Obsticles = new List<Obsticle>();
         }
-        public Dictionary<string, Character> Players { get; set; }
+        public Dictionary<string, CharacterWithScore> Players { get; set; }
         public List<Character> Monsters { get; set; }
         public List<Position> Coins { get; set; }
         public List<Obsticle> Obsticles { get; set; }

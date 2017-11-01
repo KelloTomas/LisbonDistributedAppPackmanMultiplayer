@@ -65,90 +65,128 @@ namespace pacmanServer
 
 		private void _timer_Elapsed(object sender, ElapsedEventArgs e)
 		{
-			/* update characters positions */
-			foreach (Character player in _game.Players.Values)
+			ICollection<CharacterWithScore> x = _game.Players.Values;
+			UpdateCharactersPosition(_game.Players.Values);
+			UpdateCharactersPosition(_game.Monsters);
+			
+			foreach (var player in _game.Players)
 			{
-				switch (player.Direction)
+				if (CheckIntersectionWithObsticleOrBorder(player.Value))
 				{
-					case Direction.Down:
-						player.Y += _speed;
-						break;
-					case Direction.Up:
-						player.Y -= _speed;
-						break;
-					case Direction.Left:
-						player.X -= _speed;
-						break;
-					case Direction.Right:
-						player.X += _speed;
-						break;
-					case Direction.No:
-					default:
-						break;
+					_clientsDict[player.Key].CrashWithMonster();
+				}
+				else
+				{
+					if(CheckIntersectionWithCoins(player.Value))
+					{
+						player.Value.Score++;
+					}
 				}
 			}
 
-			//move ghosts
-			foreach(Character monster in _game.Monsters)
-			{
-				switch(monster.Direction)
-				{
-					case Direction.Up:
-						monster.Y -= _speed;
-						break;
-					case Direction.Down:
-						monster.Y += _speed;
-						break;
-					case Direction.Right:
-						monster.X += _speed;
-						break;
-					case Direction.Left:
-						monster.X -= _speed;
-						break;
-				}
-			}
 			foreach (Character monster in _game.Monsters)
 			{
-                foreach (Obsticle obsticle in _game.Obsticles)
-                {
-				    if(CheckIntersection(monster, CharactersSize.Monster, obsticle))
-				    {
-					    switch (monster.Direction)
-					    {
-						    case Direction.Up:
-							    monster.Direction = Direction.Down;
-							    break;
-						    case Direction.Down:
-							    monster.Direction = Direction.Up;
-							    break;
-						    case Direction.Right:
-							    monster.Direction = Direction.Left;
-							    break;
-						    case Direction.Left:
-							    monster.Direction = Direction.Right;
-							    break;
-					    }
-				    }
-					else
+				if (CheckIntersectionWithObsticleOrBorder(monster))
+				{
+					switch (monster.Direction)
 					{
-						Direction tmp = CheckIntersectionWithBorder(monster);
-						if (tmp != Direction.No)
-							monster.Direction = tmp;
+						case Direction.Up:
+							monster.Direction = Direction.Down;
+							break;
+						case Direction.Down:
+							monster.Direction = Direction.Up;
+							break;
+						case Direction.Right:
+							monster.Direction = Direction.Left;
+							break;
+						case Direction.Left:
+							monster.Direction = Direction.Right;
+							break;
 					}
-                }
+				}
 			}
+
 			foreach (var client in _clientsDict)
 			{
 				client.Value.UpdateGame(_game);
 			}
-			foreach(var player in _game.Players.Values)
+			foreach (var player in _game.Players.Values)
 			{
 				player.Direction = Direction.No;
 			}
 		}
 
-		private Direction CheckIntersectionWithBorder(Character character)
+		private bool CheckIntersectionWithCoins(CharacterWithScore player)
 		{
+			//ToDo
+			for (int i = 0; i < _game.Coins.Count; i++)
+			{
+				if (CheckIntersection(player, CharactersSize.Player, new Obsticle(_game.Coins.ElementAt(i), new Position(CharactersSize.coin))))
+				{
+					_game.Coins.RemoveAt(i);
+					return true;
+				}
+			}
+			return false;
+		}
+
+		private bool CheckIntersectionWithObsticleOrBorder(Character monster)
+		{
+			foreach (Obsticle obsticle in _game.Obsticles)
+			{
+				if (CheckIntersection(monster, CharactersSize.Monster, obsticle))
+				{
+					return true;
+				}
+				if (CheckIntersectionWithBorder(monster))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
+		private void UpdateCharactersPosition(ICollection<CharacterWithScore> characters)
+		{
+			foreach (Character character in characters)
+			{
+				UpdateCharactersPosition(character);
+			}
+		}
+
+		private void UpdateCharactersPosition(ICollection<Character> characters)
+		{
+			foreach (Character character in characters)
+			{
+				UpdateCharactersPosition(character);
+			}
+		}
+
+		private void UpdateCharactersPosition(Character character)
+		{
+			switch (character.Direction)
+			{
+				case Direction.Down:
+					character.Y += _speed;
+					break;
+				case Direction.Up:
+					character.Y -= _speed;
+					break;
+				case Direction.Left:
+					character.X -= _speed;
+					break;
+				case Direction.Right:
+					character.X += _speed;
+					break;
+				case Direction.No:
+				default:
+					break;
+			}
+		}
+
+		private bool CheckIntersectionWithBorder(Character character)
+		{
+			/*
 			if (character.X < Board.Corner1.X)
 				return Direction.Right;
 			if (character.X > Board.Corner1.X + Board.Corner2.X)
@@ -158,6 +196,14 @@ namespace pacmanServer
 			if (character.Y > Board.Corner1.Y + Board.Corner2.Y)
 				return Direction.Up;
 			return Direction.No;
+			*/
+			if (character.X < Board.Corner1.X ||
+				character.X > Board.Corner1.X + Board.Corner2.X ||
+				character.Y < Board.Corner1.Y ||
+				character.Y > Board.Corner1.Y + Board.Corner2.Y)
+				return true;
+			else
+				return false;
 		}
 
 		private System.Drawing.Rectangle b1 = new System.Drawing.Rectangle();
@@ -185,7 +231,7 @@ namespace pacmanServer
 			}
 			Console.WriteLine("Playeer " + pId + " with url " + clientURL + " is connected");
 
-			_game.Players.Add(pId, new Character() { X = 8, Y = 40 * (_game.Players.Count + 1) });
+			_game.Players.Add(pId, new CharacterWithScore() { X = 8, Y = 40 * (_game.Players.Count + 1) });
 
 			/* get service */
 			_clientsList.Add(new Client(pId, clientURL));

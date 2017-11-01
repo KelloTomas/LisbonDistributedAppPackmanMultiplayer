@@ -13,6 +13,7 @@ namespace Shared
 		void GameStarted(string serverPId, List<Client> clients, Game game);
 		void MessageReceive(string pId, string msg);
 		void UpdateGame(Game game);
+		void CrashWithMonster();
 		/*
 		TcpChannel _channel;
 		string _pId;

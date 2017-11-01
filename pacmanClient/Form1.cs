@@ -34,6 +34,7 @@ namespace pacmanClient {
 		private static IServiceServer server;
 		private string _pId;
 		private Dictionary<string, IServiceClientWithState> _clients = new Dictionary<string, IServiceClientWithState>();
+		private int _score = 0;
 
 		#endregion
 
@@ -41,12 +42,6 @@ namespace pacmanClient {
 		public Form1(string[] args) {
 			InitializeComponent();
             label2.Visible = false;
-            label1.Visible = false;
-			/*
-			Console.WriteLine("Hello");
-			DrawNewCharacterToGame(Controls, Properties.Resources.red_guy);
-			DrawNewCharacterToGame(Controls, Properties.Resources.red_guy).Left = 300;
-			*/
 			_pId = args[0];
 			string myURL = args[1];
 			string serverPID = args[2];
@@ -85,6 +80,11 @@ namespace pacmanClient {
 			{
 				Console.WriteLine("Cant connect to server");
 			}
+		}
+
+		internal void CrashWithMonster()
+		{
+			_state = State.Dead;
 		}
 		#endregion
 
@@ -154,9 +154,21 @@ namespace pacmanClient {
 
 			BeginInvoke(new MethodInvoker(delegate
 			{
+				foreach (var player in game.Players)
+				{
+					players.Add(DrawNewCharacterToGame(Controls, Properties.Resources.Right, CharactersSize.Player));
+				}
+				foreach (var monster in game.Monsters)
+				{
+					monsters.Add(DrawNewCharacterToGame(Controls, Properties.Resources.red_guy, CharactersSize.Monster));
+				}
 				foreach (var obsticle in game.Obsticles)
 				{
 					DrawObsticle(Controls, obsticle);
+				}
+				foreach(var coin in game.Coins)
+				{
+					coins.Add(DrawNewCharacterToGame(Controls, Properties.Resources.cccc, CharactersSize.coin));
 				}
 			}));
 			_timer.Start();
@@ -175,7 +187,7 @@ namespace pacmanClient {
 			picture.Dispose();
 		}
 
-		private PictureBox DrawNewCharacterToGame(Control.ControlCollection Controls, Bitmap picture, int size)
+		private PictureBox DrawNewCharacterToGame(Control.ControlCollection Controls, Image picture, int size)
 		{
 			PictureBox ghost = new PictureBox();
 
@@ -217,62 +229,43 @@ namespace pacmanClient {
 		public void UpdateGame(Game game)
 		{
 			_game = game;
-			int i;
-			for (i = 0; i < game.Players.Count; i++)
+			for (int i = 0; i < game.Players.Count; i++)
 			{
-				if (i >= players.Count)
-					BeginInvoke(new MethodInvoker(delegate
-					{
-						players.Add(DrawNewCharacterToGame(Controls, Properties.Resources.Right, Shared.CharactersSize.Player));
-						UpdatePlayerPosition(game, i);
-					}));
-				else
-					UpdatePlayerPosition(game, i);
+				UpdatePlayerPosition(game, i);
 			}
-			while (players.Count > i)
+			for (int i = 0; i < game.Monsters.Count; i++)
 			{
-				Console.WriteLine("Removing character");
-				RemoveCharacterFromForm(players.ElementAt(i));
-				players.RemoveAt(i);
-			}
-			for (i = 0; i < game.Monsters.Count; i++)
-			{
-				if (i >= monsters.Count)
-					BeginInvoke(new MethodInvoker(delegate
-					{
-						monsters.Add(DrawNewCharacterToGame(Controls, Properties.Resources.red_guy, Shared.CharactersSize.Monster));
-					}));
 				monsters.ElementAt(i).Left = game.Monsters.ElementAt(i).X;
 				monsters.ElementAt(i).Top = game.Monsters.ElementAt(i).Y;
 			}
-			while (monsters.Count > i)
-			{
-				Console.WriteLine("Removing monster");
-				RemoveCharacterFromForm(monsters.ElementAt(i));
-				monsters.RemoveAt(i);
-			}
 
-			if (coins.Count != game.Coins.Count)
+			//if (coins.Count != game.Coins.Count)
 			{
-				foreach(var coin in coins)
+				int i;
+				for (i = 0; i < game.Coins.Count; i++)
 				{
-					RemoveCharacterFromForm(coin);
+					coins.ElementAt(i).Left = game.Coins.ElementAt(i).X;
+					coins.ElementAt(i).Top = game.Coins.ElementAt(i).Y;
 				}
-				coins.Clear();
-				BeginInvoke(new MethodInvoker(delegate
+				for (int x = i; x < coins.Count; x++)
 				{
-					for (i = 0; i < game.Coins.Count; i++)
-					{
-						coins.Add(DrawNewCharacterToGame(Controls, Properties.Resources.coint2, Shared.CharactersSize.coin));
-						coins.ElementAt(i).Left = game.Coins.ElementAt(i).X;
-						coins.ElementAt(i).Top = game.Coins.ElementAt(i).Y;
-					}
-				}));
+					RemoveCharacterFromForm(coins.ElementAt(x));
+				}
+				while (i < coins.Count)
+					coins.RemoveAt(i);
 			}
 		}
 
 		private void UpdatePlayerPosition(Game game, int i)
 		{
+			if (game.Players.ElementAt(i).Value.Score != _score)
+			{
+				_score = game.Players.ElementAt(i).Value.Score;
+				BeginInvoke(new MethodInvoker(delegate
+				{
+					label1.Text = "Score: " + _score;
+				}));
+			}
 			players.ElementAt(i).Left = game.Players.ElementAt(i).Value.X;
 			players.ElementAt(i).Top = game.Players.ElementAt(i).Value.Y;
             //Console.WriteLine(game.Players.ElementAt(i).Value.Direction);
