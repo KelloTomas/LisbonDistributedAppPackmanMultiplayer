@@ -143,14 +143,7 @@ namespace PuppetMaster
                     processPId = parts[1];
                     if(activators.TryGetValue(processPId, out program))
                     {
-                        if (program == null)
-                        {
-                            Console.WriteLine("Could not locate process");
-                        }
-                        else
-                        {
-                            program.Crash();
-                        }
+                        program.Crash();
                     }
                     break;
 				case "Freeze":
@@ -158,6 +151,10 @@ namespace PuppetMaster
 				case "Unfreeze":
 					break;
 				case "InjectDelay":
+                    string srcPID = parts[1];
+                    string dstPID = parts[2];
+                    if(activators.TryGetValue(srcPID, out program))
+                        program.InjectDelay(dstPID, 3000);
 					break;
 				case "LocalState":
 					break;

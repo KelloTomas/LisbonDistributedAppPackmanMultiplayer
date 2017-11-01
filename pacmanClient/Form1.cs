@@ -310,10 +310,10 @@ namespace pacmanClient {
 				Console.WriteLine("client: " + client.Key + " is in state " + (client.Value == null?"offline":"online"));
 			}
 		}
-		internal void InjectDelay()
+		internal void InjectDelay(string PID, int mSecDelay)
 		{
-			throw new NotImplementedException();
-		}
+        
+        }
 		internal void Freez()
 		{
 			throw new NotImplementedException();

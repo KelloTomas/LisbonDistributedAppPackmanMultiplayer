@@ -95,11 +95,13 @@ namespace Shared
 		{
 			PId = pId;
 			this.URL = URL;
+            //dstDELAY = 0;
 		}
 
 		public string PId { get; private set; }
 		public string URL { get; private set; }
-	}
+        //public int dstDELAY { get; set; }
+    }
 
 	[Serializable]
 	public enum Direction

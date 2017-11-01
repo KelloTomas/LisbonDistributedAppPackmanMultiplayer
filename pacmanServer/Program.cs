@@ -17,7 +17,7 @@ namespace pacmanServer
 	{
 		#region private fields...
 		Obsticle Board;
-
+		int _delay = 0;
 		string _pId;
 		int _maxNumPlayers;
 		int _numPlayers = 0;
@@ -27,7 +27,10 @@ namespace pacmanServer
 		System.Timers.Timer _timer;
 		ServiceServer serviceServer;
 		private List<Client> _clientsList = new List<Client>();
+		private Dictionary<string, int> _delays = new Dictionary<string, int>();
+		private Dictionary<string, int> _delays_count = new Dictionary<string, int>();
 		private Dictionary<string, IServiceClient> _clientsDict = new Dictionary<string, IServiceClient>();
+		private delegate void UpdateGameDelegate();
 		#endregion
 
 		static void Main(string[] args)
@@ -62,7 +65,6 @@ namespace pacmanServer
 			Console.WriteLine("Write \"q\" to quit");
 			while (Console.ReadLine() != "q") ;
 		}
-
 		private void _timer_Elapsed(object sender, ElapsedEventArgs e)
 		{
 			ICollection<CharacterWithScore> x = _game.Players.Values;
@@ -105,14 +107,32 @@ namespace pacmanServer
 					}
 				}
 			}
-
-			foreach (var client in _clientsDict)
-			{
-				client.Value.UpdateGame(_game);
-			}
-			foreach (var player in _game.Players.Values)
+			UpdateGame();
+			foreach(var player in _game.Players.Values)
 			{
 				player.Direction = Direction.No;
+			}
+		}
+		
+		private void UpdateGame()
+		{
+			int sec = 0;
+			foreach (var client in _clientsDict)
+			{
+				if (_delays.TryGetValue(client.Key, out sec))
+				{
+					//_delays_count.TryGetValue(client.Key, out count);
+					//count = (count - (int)_timer.Interval) % sec;
+					_delays_count[client.Key] = (_delays_count[client.Key] - (int)_timer.Interval) % sec;
+					Console.WriteLine(_delays_count[client.Key]);
+					
+					if (_delays_count[client.Key] > _timer.Interval) {
+						continue;
+					}
+					_delays_count[client.Key] = sec;
+					// Console.WriteLine(_delays_count[client.Key]);
+				}
+				client.Value.UpdateGame(_game);
 			}
 		}
 
@@ -207,20 +227,20 @@ namespace pacmanServer
 		}
 
 		private System.Drawing.Rectangle b1 = new System.Drawing.Rectangle();
-        private System.Drawing.Rectangle b2 = new System.Drawing.Rectangle();
-        private bool CheckIntersection(Character monster, int size, Obsticle obsticle)
-        {
-            b1.X = monster.X;
-            b1.Y = monster.Y;
-            b1.Width = size;
-            b1.Height = size;
-            b2.X = obsticle.Corner1.X;
-            b2.Y = obsticle.Corner1.Y;
-            b2.Width = obsticle.Corner2.X;
-            b2.Height = obsticle.Corner2.Y;
-            bool intersec = b1.IntersectsWith(b2);
-            return intersec;
-        }
+		private System.Drawing.Rectangle b2 = new System.Drawing.Rectangle();
+		private bool CheckIntersection(Character monster, int size, Obsticle obsticle)
+		{
+			b1.X = monster.X;
+			b1.Y = monster.Y;
+			b1.Width = size;
+			b1.Height = size;
+			b2.X = obsticle.Corner1.X;
+			b2.Y = obsticle.Corner1.Y;
+			b2.Width = obsticle.Corner2.X;
+			b2.Height = obsticle.Corner2.Y;
+			bool intersec = b1.IntersectsWith(b2);
+			return intersec;
+		}
 
 		public bool RegisterPlayer(string pId, string clientURL)
 		{
@@ -283,13 +303,20 @@ namespace pacmanServer
 		{
 			_game.Players[pId].Direction = direction;
 		}
-        public void Crash()
-        {
-            Environment.Exit(0);   
-        }
-        public void GlobalStatus()
-        {
-            Console.WriteLine("Global Status:");
-        }
+		public void Crash()
+		{
+			Environment.Exit(0);   
+		}
+		public void GlobalStatus()
+		{
+			Console.WriteLine("Global Status: online");
+		}
+		public void InjectDelay(string PID, int mSecDelay)
+		{
+			_delays.Add(PID, mSecDelay);
+			_delays_count.Add(PID, mSecDelay);
+			_delay = mSecDelay;
+			
+		}
 	}
 }
