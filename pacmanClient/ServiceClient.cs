@@ -6,19 +6,25 @@ namespace pacmanClient
 {
 	public class ServiceClientWithState : MarshalByRefObject, IServiceClientWithState
 	{
-		//string _serverPId;
-		Form1 _form;
+		private Form1 _form;
+		public State State { get; set; }
 
-        public ServiceClientWithState()
+#region Constructor...
+		public ServiceClientWithState()
         {
             State = State.Playing;
         }
 
-		public State State { get; set; }
-
 		public ServiceClientWithState(string pID, Form1 form)
 		{
 			_form = form;
+		}
+		#endregion
+
+		#region IServiceClient
+		public void MessageReceive(string pId, string msg)
+		{
+			_form.MessageReceive(pId, msg);
 		}
 
 		public void GameStarted(string serverPId, List<Client> clients, Game game)
@@ -26,19 +32,20 @@ namespace pacmanClient
 			_form.GameStarted(serverPId, clients, game);
 		}
 
-		public void MessageReceive(string pId, string msg)
+		public void GameUpdate(Game game)
 		{
-			_form.MessageReceive(pId, msg);
+			_form.GameUpdate(game);
 		}
 
-		public void UpdateGame(Game game)
+		public void GameEnded(bool win)
 		{
-			_form.UpdateGame(game);
+			_form.GameEnded(win);
 		}
+#endregion
 
-        #region IController
+		#region IController
 
-        public void Crash()
+		public void Crash()
 		{
 			_form.Crash();
 		}
@@ -68,10 +75,6 @@ namespace pacmanClient
 			return _form.LocalState();
 		}
 
-		public void CrashWithMonster()
-		{
-			_form.CrashWithMonster();
-		}
 
 		#endregion
 	}

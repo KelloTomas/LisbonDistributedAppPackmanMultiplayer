@@ -30,6 +30,17 @@ namespace pacmanClient {
 		private System.Timers.Timer _timer;
 		private static IServiceServer server;
 		private string _pId;
+
+		internal void GameEnded(bool win)
+		{
+			BeginInvoke(new MethodInvoker(delegate
+			{
+				label2.Visible = true;
+				label2.Text = win?"You win":"Game Over";
+				_state = State.Dead;
+			}));
+		}
+
 		private Dictionary<string, IServiceClientWithState> _clients = new Dictionary<string, IServiceClientWithState>();
 		private int _score = 0;
 		#endregion
@@ -76,16 +87,6 @@ namespace pacmanClient {
 			{
 				Console.WriteLine("Cant connect to server");
 			}
-		}
-
-		internal void CrashWithMonster()
-		{
-			BeginInvoke(new MethodInvoker(delegate
-			{
-				label2.Visible = true;
-				label2.Text = "Game Over";
-				_state = State.Dead;
-			}));
 		}
 		#endregion
 
@@ -155,6 +156,10 @@ namespace pacmanClient {
 
 			BeginInvoke(new MethodInvoker(delegate
 			{
+				foreach(var coin in game.Coins)
+				{
+					coins.Add(DrawNewCharacterToGame(Controls, Properties.Resources.coinPNG, CharactersSize.coin));
+				}
 				foreach (var player in game.Players)
 				{
 					players.Add(DrawNewCharacterToGame(Controls, Properties.Resources.Right, CharactersSize.Player));
@@ -167,12 +172,8 @@ namespace pacmanClient {
 				{
 					DrawObsticle(Controls, obsticle);
 				}
-				foreach(var coin in game.Coins)
-				{
-					coins.Add(DrawNewCharacterToGame(Controls, Properties.Resources.coinPNG, CharactersSize.coin));
-				}
+				UpdateCoinPosition(true);
 			}));
-			_timer.Start();
 			foreach (Client client in clients)
 			{
 				if (client.PId == _pId)
@@ -181,6 +182,7 @@ namespace pacmanClient {
 				typeof(IServiceClient),
 				client.URL));
 			}
+			_timer.Start();
 		}
 
 		private void RemoveCharacterFromForm(PictureBox picture)
@@ -227,26 +229,40 @@ namespace pacmanClient {
 			((ISupportInitialize)(obsticle)).EndInit();
 		}
 
-		public void UpdateGame(Game game)
+		public void GameUpdate(Game game)
 		{
 			_game = game;
-			for (int i = 0; i < game.Players.Count; i++)
-			{
-				UpdatePlayerPosition(game, i);
-			}
-			for (int i = 0; i < game.Monsters.Count; i++)
-			{
-				monsters.ElementAt(i).Left = game.Monsters.ElementAt(i).X;
-				monsters.ElementAt(i).Top = game.Monsters.ElementAt(i).Y;
-			}
+			UpdatePlayersPosition();
+			UpdateMonsterPosition();
+			UpdateCoinPosition();
+		}
 
-			if (coins.Count != game.Coins.Count)
+		private void UpdatePlayersPosition()
+		{
+			for (int i = 0; i < _game.Players.Count; i++)
+			{
+				UpdatePlayerPosition(_game, i);
+			}
+		}
+
+		private void UpdateMonsterPosition()
+		{
+			for (int i = 0; i < _game.Monsters.Count; i++)
+			{
+				monsters.ElementAt(i).Left = _game.Monsters.ElementAt(i).X;
+				monsters.ElementAt(i).Top = _game.Monsters.ElementAt(i).Y;
+			}
+		}
+
+		private void UpdateCoinPosition(bool forceRedraw = false)
+		{
+			if (coins.Count != _game.Coins.Count || forceRedraw)
 			{
 				int i;
-				for (i = 0; i < game.Coins.Count; i++)
+				for (i = 0; i < _game.Coins.Count; i++)
 				{
-					coins.ElementAt(i).Left = game.Coins.ElementAt(i).X;
-					coins.ElementAt(i).Top = game.Coins.ElementAt(i).Y;
+					coins.ElementAt(i).Left = _game.Coins.ElementAt(i).X;
+					coins.ElementAt(i).Top = _game.Coins.ElementAt(i).Y;
 				}
 				for (int x = i; x < coins.Count; x++)
 				{

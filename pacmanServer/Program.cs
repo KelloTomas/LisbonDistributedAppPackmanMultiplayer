@@ -74,7 +74,7 @@ namespace pacmanServer
 			
 			foreach (var player in _game.Players)
 			{
-				if (CheckIntersectionWithObsticleOrBorder(player.Value))
+				if (CheckIntersectionWithObsticleOrBorder(player.Value, CharactersSize.Player))
 				{
 					UpdateCharactersPosition(player.Value, true); // move player back
 				}
@@ -84,19 +84,28 @@ namespace pacmanServer
 					{
 						player.Value.X = -CharactersSize.Player;
 						player.Value.Y = 0;
-						_clientsDict[player.Key].CrashWithMonster();
+						_clientsDict[player.Key].GameEnded(false);
 					}
 					else
-						if(CheckIntersectionWithCoins(player.Value))
+					{
+						if (CheckIntersectionWithCoins(player.Value))
 						{
 							player.Value.Score++;
+							if (_game.Coins.Count == 0)
+							{
+								foreach (var client in _clientsDict)
+								{
+									client.Value.GameEnded(true);
+								}
+							}
 						}
+					}
 				}
 			}
 
 			foreach (Character monster in _game.Monsters)
 			{
-				if (CheckIntersectionWithObsticleOrBorder(monster))
+				if (CheckIntersectionWithObsticleOrBorder(monster, CharactersSize.Monster))
 				{
 					switch (monster.Direction)
 					{
@@ -126,7 +135,7 @@ namespace pacmanServer
 		{
 			foreach(Character monster in _game.Monsters)
 			{
-				if (CheckIntersection(player, monster))
+				if (CheckIntersection(player, CharactersSize.Player, monster, CharactersSize.Monster))
 				{
 					return true;
 				}
@@ -153,7 +162,7 @@ namespace pacmanServer
 					_delays_count[client.Key] = sec;
 					// Console.WriteLine(_delays_count[client.Key]);
 				}
-				client.Value.UpdateGame(_game);
+				client.Value.GameUpdate(_game);
 			}
 		}
 
@@ -171,18 +180,18 @@ namespace pacmanServer
 			return false;
 		}
 
-		private bool CheckIntersectionWithObsticleOrBorder(Character character)
+		private bool CheckIntersectionWithObsticleOrBorder(Position character, int characterSize)
 		{
 			foreach (Obsticle obsticle in _game.Obsticles)
 			{
-				if (CheckIntersection(character, CharactersSize.Monster, obsticle))
+				if (CheckIntersection(character, characterSize, obsticle))
 				{
 					return true;
 				}
-				if (CheckIntersectionWithBorder(character))
-				{
-					return true;
-				}
+			}
+			if (CheckIntersectionWithBorder(character))
+			{
+				return true;
 			}
 			return false;
 		}
@@ -225,7 +234,7 @@ namespace pacmanServer
 			}
 		}
 
-		private bool CheckIntersectionWithBorder(Character character)
+		private bool CheckIntersectionWithBorder(Position character)
 		{
 			if (character.X < Board.Corner1.X ||
 				character.X > Board.Corner1.X + Board.Corner2.X ||
@@ -238,15 +247,15 @@ namespace pacmanServer
 
 		private Rectangle b1 = new Rectangle();
 		private Rectangle b2 = new Rectangle();
-		private bool CheckIntersection(Character player, Character monster)
+		private bool CheckIntersection(Position p1, int p1Size, Position p2, int p2Size)
 		{
-			b2.X = monster.X;
-			b2.Y = monster.Y;
-			b2.Width = CharactersSize.Monster;
-			b2.Height = CharactersSize.Monster;
-			return CheckIntersection(player, CharactersSize.Player, b2);
+			b2.X = p2.X;
+			b2.Y = p2.Y;
+			b2.Width = p2Size;
+			b2.Height = p2Size;
+			return CheckIntersection(p1, p1Size, b2);
 		}
-		private bool CheckIntersection(Character character, int characterSize, Obsticle obsticle)
+		private bool CheckIntersection(Position character, int characterSize, Obsticle obsticle)
 		{
 			b2.X = obsticle.Corner1.X;
 			b2.Y = obsticle.Corner1.Y;
@@ -254,7 +263,7 @@ namespace pacmanServer
 			b2.Height = obsticle.Corner2.Y;
 			return CheckIntersection(character, characterSize, b2);
 		}
-		private bool CheckIntersection(Character character, int characterSize, Rectangle obsticle)
+		private bool CheckIntersection(Position character, int characterSize, Rectangle obsticle)
 		{
 			b1.X = character.X;
 			b1.Y = character.Y;
@@ -280,15 +289,18 @@ namespace pacmanServer
 			_clientsDict.Add(pId, (IServiceClient)Activator.GetObject(
 				typeof(IServiceClient),
 				clientURL));
-
 			if (++_numPlayers == _maxNumPlayers)
 			{
-				StartGame();
+				GameStart();
+			}
+			else
+			{
+				Console.WriteLine("Waiting for " + (_maxNumPlayers - _numPlayers) + " more players");
 			}
 			return true;
 		}
 
-		private void StartGame()
+		private void GameStart()
 		{
 			Console.WriteLine("Game starting");
 			_game.Obsticles.Add(new Obsticle() { Corner1 = new Position() { X = 88, Y = 40 }, Corner2 = new Position() { X = 15, Y = 95 } });
@@ -299,7 +311,14 @@ namespace pacmanServer
 			{
 				for (int j = 0; j < 8; j++)
 				{
-					_game.Coins.Add(new Position() { X = 8 + i * 40, Y = 40 + j * 40 });
+					Position coin = new Position() { X = 8 + i * 40, Y = 40 + j * 40 };
+					if (!CheckIntersectionWithObsticleOrBorder(coin, CharactersSize.coin))
+					{
+						if(!CheckIntersectionWithPlayer(coin, CharactersSize.coin))
+						{
+							_game.Coins.Add(coin);
+						}
+					}
 				}
 			}
 
@@ -310,6 +329,16 @@ namespace pacmanServer
 			ThreadStart ts = new ThreadStart(this.BroadcastGameStart);
 			Thread t = new Thread(ts);
 			t.Start();
+		}
+
+		private bool CheckIntersectionWithPlayer(Position p, int pSize)
+		{
+			foreach(Position player in _game.Players.Values)
+			{
+				if (CheckIntersection(player, CharactersSize.Player, p, pSize))
+					return true;
+			}
+			return false;
 		}
 
 		private void BroadcastGameStart()
