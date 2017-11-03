@@ -145,11 +145,13 @@ namespace pacmanClient
 		{
 			if (e.KeyCode == Keys.Enter)
 			{
-				foreach (IServiceClient client in _clients.Values)
+				foreach (KeyValuePair<string, IServiceClientWithState> client in _clients)
 				{
-					client.MessageReceive(_pId, tbMsg.Text);
-				}
-				tbChat.Text += "\r\n" + tbMsg.Text;
+					//client.MessageReceive(_pId, tbMsg.Text);
+                    _delays.SendWithDelay(client.Key, (Action<string, string>)client.Value.MessageReceive, new object[] { _pId, tbMsg.Text });
+
+                }
+                tbChat.Text += "\r\n" + tbMsg.Text;
 				tbMsg.Clear();
 				tbMsg.Enabled = false;
 				Focus();
@@ -346,10 +348,10 @@ namespace pacmanClient
 				Console.WriteLine("client: " + client.Key + " is in state " + (client.Value == null ? "offline" : "online"));
 			}
 		}
-		internal void InjectDelay(string PID, int mSecDelay)
+		internal void InjectDelay(string pId, int mSecDelay)
 		{
-
-		}
+            _delays.AddDelay(pId, mSecDelay);
+        }
 		internal void Freez()
 		{
 			throw new NotImplementedException();

@@ -129,10 +129,10 @@ namespace pacmanServer
 				}
 			}
 			SendUpdatedGameToClients(_game);
-			foreach (var player in _game.Players.Values)
+			/*foreach (var player in _game.Players.Values)
 			{
 				player.Direction = Direction.No;
-			}
+			}*/
 		}
 
 

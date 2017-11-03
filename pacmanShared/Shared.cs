@@ -24,6 +24,11 @@ namespace Shared
 			Y = 0;
 			X = 0;
 		}
+        public Position(Position pos)
+        {
+            X = pos.X;
+            Y = pos.Y;
+        }
 		public int Y { get; set; }
 		public int X { get; set; }
 	}
@@ -42,8 +47,12 @@ namespace Shared
 			Corner1 = coin;
 			Corner2 = position;
 		}
+        public Obsticle(Obsticle obs) {
+            Corner1 = new Position(obs.Corner1);
+            Corner2 = new Position(obs.Corner2);
 
-		public Position Corner1 { get; set; }
+        }
+        public Position Corner1 { get; set; }
 		public Position Corner2 { get; set; }
 	}
 
@@ -54,6 +63,10 @@ namespace Shared
 		{
 			Direction = Direction.No;
 		}
+        public Character(Character character)
+        {
+            Direction = character.Direction;
+        }
 		public Direction Direction { get; set; }
 	}
 
@@ -64,7 +77,11 @@ namespace Shared
 		{
 			Score = 0;
 		}
-		public int Score { get; set; }
+        public CharacterWithScore(CharacterWithScore character)
+        {
+            Score = character.Score;
+        }
+        public int Score { get; set; }
 	}
 
 	public interface IServiceClientWithState : IServiceClient
@@ -82,7 +99,31 @@ namespace Shared
 			Coins = new List<Position>();
 			Obsticles = new List<Obsticle>();
 		}
-		public int RoundId = 0;
+        public Game(Game game)
+        {
+            Players = new Dictionary<string, CharacterWithScore>();
+            Monsters = new List<Character>();
+            Coins = new List<Position>();
+            Obsticles = new List<Obsticle>();
+            RoundId = game.RoundId;
+            foreach(KeyValuePair<string, CharacterWithScore> pair in game.Players)
+            {
+                Players.Add(pair.Key, new CharacterWithScore(pair.Value));
+            }
+            foreach(Character Char in game.Monsters)
+            {
+                Monsters.Add(new Character(Char));
+            }
+            foreach(Position pos in game.Coins)
+            {
+                Coins.Add(new Position(pos));
+            }
+            foreach(Obsticle obs in game.Obsticles)
+            {
+                Obsticles.Add(new Obsticle(obs));
+            }
+        }
+        public int RoundId = 0;
 		public Dictionary<string, CharacterWithScore> Players { get; set; }
 		public List<Character> Monsters { get; set; }
 		public List<Position> Coins { get; set; }
