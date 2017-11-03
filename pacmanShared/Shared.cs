@@ -99,30 +99,6 @@ namespace Shared
 			Coins = new List<Position>();
 			Obsticles = new List<Obsticle>();
 		}
-        public Game(Game game)
-        {
-            Players = new Dictionary<string, CharacterWithScore>();
-            Monsters = new List<Character>();
-            Coins = new List<Position>();
-            Obsticles = new List<Obsticle>();
-            RoundId = game.RoundId;
-            foreach(KeyValuePair<string, CharacterWithScore> pair in game.Players)
-            {
-                Players.Add(pair.Key, new CharacterWithScore(pair.Value));
-            }
-            foreach(Character Char in game.Monsters)
-            {
-                Monsters.Add(new Character(Char));
-            }
-            foreach(Position pos in game.Coins)
-            {
-                Coins.Add(new Position(pos));
-            }
-            foreach(Obsticle obs in game.Obsticles)
-            {
-                Obsticles.Add(new Obsticle(obs));
-            }
-        }
         public int RoundId = 0;
 		public Dictionary<string, CharacterWithScore> Players { get; set; }
 		public List<Character> Monsters { get; set; }
