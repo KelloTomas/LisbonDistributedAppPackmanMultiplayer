@@ -15,27 +15,75 @@ namespace CommonTypes
 			else
 				_delays[pId] = length;
 		}
-		
-        private int frozen_count = 0;
-        private bool Freezed = false;
+
+		public void Freez()
+		{
+			_isFrozen = true;
+		}
+
+		public void IsFrozen()
+		{
+			lock (this)
+			{
+				if (_isFrozen)
+				{
+					_frozenCount++;
+					Monitor.Wait(this);
+					if (_frozenCount > 0)
+					{
+						_frozenCount--;
+						Monitor.Pulse(this);
+					}
+				}
+			}
+		}
+
+		public void UnFreez()
+		{
+			_isFrozen = false;
+			Monitor.Pulse(this);
+		}
+
+		private int _frozenCount = 0;
+		private bool _isFrozen = false;
 		public void SendWithDelay(string pId, Delegate v, params object[] parameters)
 		{
-			//ToDo Create thread, whole communication take a lot of time, so whole function should be in new thread
-            lock (this)
-            {
-                if (Freezed)
-                {
-                    frozen_count++;
-                    Monitor.Wait(this);
-                }
-                if (_delays.ContainsKey(pId))
-                {
-                    Thread.Sleep(_delays[pId]);
-                }
-                v.DynamicInvoke(parameters);
-                if (frozen_count > 0)
-                    Monitor.Pulse(this);
-            }
+			/*
+			 * 
+			 * TOMAS when I make lock, then one of calls stop and
+			 * no other updates are sended. Need to fix it
+			 * 
+			 * 
+			new Thread(() =>
+			{
+				Thread.CurrentThread.IsBackground = true;
+				lock (this)
+				{
+					if (_isFrozen)
+					{
+						_frozenCount++;
+						Monitor.Wait(this);
+					}
+					if (_delays.ContainsKey(pId))
+					{
+						if (_frozenCount > 0)
+						{
+							_frozenCount--;
+							Monitor.Pulse(this);
+						}
+						Thread.Sleep(_delays[pId]);
+					}
+					*/
+					v.DynamicInvoke(parameters);
+				/*
+					if (_frozenCount > 0)
+					{
+						_frozenCount--;
+						Monitor.Pulse(this);
+					}
+				}
+			}).Start();
+			*/
 		}
 	}
 }

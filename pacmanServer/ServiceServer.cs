@@ -1,34 +1,46 @@
-using pacmanServer;
+using CommonTypes;
 using Shared;
 using System;
 
-namespace CommonTypes
+namespace pacmanServer
 {
 	public class ServiceServer : MarshalByRefObject, IServiceServer
 	{
+		#region private fields...
 		private Program _program;
-		public ServiceServer(Program program)
+		private Delays _delays;
+		#endregion
+
+		#region constructor...
+		internal ServiceServer(Program program, Delays delays)
 		{
 			_program = program;
+			_delays = delays;
 		}
-		public bool RegisterPlayer(string pId, string clientURL)
+		#endregion
+
+		#region IServiceServer
+		public void RegisterPlayer(string pId, string clientURL)
 		{
-			return _program.RegisterPlayer(pId, clientURL);
+			_delays.IsFrozen();
+			_program.RegisterPlayer(pId, clientURL);
 		}
 
 		public void SetMove(string pId, int roundId, Direction direction)
 		{
+			_delays.IsFrozen();
 			_program.SetMove(pId, roundId, direction);
 		}
+		#endregion
 
-        #region IController
-        public void Crash()
-        {
-            _program.Crash();
-        }
-        public void GlobalStatus()
+		#region IController
+		public void Crash()
 		{
-            _program.GlobalStatus();
+			_program.Crash();
+		}
+		public void GlobalStatus()
+		{
+			_program.GlobalStatus();
 		}
 
 		public string LocalState(int roundId)
@@ -48,8 +60,8 @@ namespace CommonTypes
 
 		public void InjectDelay(string PID, int mSecDelay)
 		{
-            _program.InjectDelay(PID, mSecDelay);
+			_program.InjectDelay(PID, mSecDelay);
 		}
-#endregion
+		#endregion
 	}
 }

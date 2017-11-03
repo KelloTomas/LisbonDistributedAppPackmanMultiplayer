@@ -4,26 +4,26 @@ using System.Text.RegularExpressions;
 
 namespace Shared
 {
-    public static class CharactersSize
-    {
-        public static int Player = 25;
-        public static int Monster = 30;
-        public static int coin = 15;
-    }
+	public static class CharactersSize
+	{
+		public static int Player = 25;
+		public static int Monster = 30;
+		public static int coin = 15;
+	}
 
 	[Serializable]
 	public class Position
 	{
-        public Position(int size)
+		public Position(int size)
 		{
 			X = size;
 			Y = size;
 		}
-        public Position()
-        {
-            Y = 0;
-            X = 0;
-        }
+		public Position()
+		{
+			Y = 0;
+			X = 0;
+		}
 		public int Y { get; set; }
 		public int X { get; set; }
 	}
@@ -72,21 +72,22 @@ namespace Shared
 		State State { get; set; }
 	}
 
-    [Serializable]
-    public class Game
-    {
-        public Game()
-        {
-            Players = new Dictionary<string, CharacterWithScore>();
-            Monsters = new List<Character>();
-            Coins = new List<Position>();
-            Obsticles = new List<Obsticle>();
-        }
-        public Dictionary<string, CharacterWithScore> Players { get; set; }
-        public List<Character> Monsters { get; set; }
-        public List<Position> Coins { get; set; }
-        public List<Obsticle> Obsticles { get; set; }
-    }
+	[Serializable]
+	public class Game
+	{
+		public Game()
+		{
+			Players = new Dictionary<string, CharacterWithScore>();
+			Monsters = new List<Character>();
+			Coins = new List<Position>();
+			Obsticles = new List<Obsticle>();
+		}
+		public int RoundId = 0;
+		public Dictionary<string, CharacterWithScore> Players { get; set; }
+		public List<Character> Monsters { get; set; }
+		public List<Position> Coins { get; set; }
+		public List<Obsticle> Obsticles { get; set; }
+	}
 
 	[Serializable]
 	public class Client
@@ -95,13 +96,13 @@ namespace Shared
 		{
 			PId = pId;
 			this.URL = URL;
-            //dstDELAY = 0;
+			//dstDELAY = 0;
 		}
 
 		public string PId { get; private set; }
 		public string URL { get; private set; }
-        //public int dstDELAY { get; set; }
-    }
+		//public int dstDELAY { get; set; }
+	}
 
 	[Serializable]
 	public enum Direction

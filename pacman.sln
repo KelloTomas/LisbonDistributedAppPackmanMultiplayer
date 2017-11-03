@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27004.2005
+VisualStudioVersion = 15.0.27004.2006
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "pacmanClient\Client.csproj", "{ECE5A838-E181-493A-B9A2-6ADD01DE37F6}"
 EndProject
@@ -15,6 +15,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		pacmanPuppetMaster\commands.txt = pacmanPuppetMaster\commands.txt
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProcessCreationService", "pacmanProcessCreationService\ProcessCreationService.csproj", "{DFF87C3B-8FDD-47DA-98C7-92AF6C77C108}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -38,6 +40,10 @@ Global
 		{0A880F1A-A973-4167-8EF2-DE65AAF99942}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0A880F1A-A973-4167-8EF2-DE65AAF99942}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0A880F1A-A973-4167-8EF2-DE65AAF99942}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DFF87C3B-8FDD-47DA-98C7-92AF6C77C108}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DFF87C3B-8FDD-47DA-98C7-92AF6C77C108}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DFF87C3B-8FDD-47DA-98C7-92AF6C77C108}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DFF87C3B-8FDD-47DA-98C7-92AF6C77C108}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

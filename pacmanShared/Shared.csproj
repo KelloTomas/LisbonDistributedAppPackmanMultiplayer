@@ -89,6 +89,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Delays.cs" />
+    <Compile Include="IServicePCS.cs" />
     <Compile Include="Shared.cs" />
     <Compile Include="ICommands.cs" />
     <Compile Include="IServiceClient.cs" />

@@ -12,12 +12,11 @@ using System.Timers;
 
 namespace pacmanServer
 {
-	public class Program
+	internal class Program
 	{
 		#region private fields...
 		private Delays delays = new Delays();
 		private Obsticle Board;
-		private int _delay = 0;
 		private string _pId;
 		private int _maxNumPlayers;
 		private int _numPlayers = 0;
@@ -27,8 +26,6 @@ namespace pacmanServer
 		private System.Timers.Timer _timer;
 		private ServiceServer serviceServer;
 		private List<Client> _clientsList = new List<Client>();
-		private Dictionary<string, int> _delays = new Dictionary<string, int>();
-		private Dictionary<string, int> _delays_count = new Dictionary<string, int>();
 		private Dictionary<string, IServiceClient> _clientsDict = new Dictionary<string, IServiceClient>();
 		private delegate void UpdateGameDelegate();
 		#endregion
@@ -51,80 +48,88 @@ namespace pacmanServer
 			int mSec = int.Parse(args[2]);
 			_maxNumPlayers = int.Parse(args[3]);
 			_timer = new System.Timers.Timer() { AutoReset = true, Enabled = false, Interval = mSec };
-			_timer.Elapsed += _timer_Elapsed;
+			_timer.Elapsed += Timer_Elapsed;
 
-			/* set channel */
-			channel = new TcpChannel(int.Parse(Shared.Shared.ParseUrl(URLparts.Port, myURL)));
-			ChannelServices.RegisterChannel(channel, true);
-
-			/*set service */
-			serviceServer = new ServiceServer(this);
-			string link = Shared.Shared.ParseUrl(URLparts.Link, myURL);
-			Console.WriteLine("Starting server on " + myURL + ", link: " + link);
-			RemotingServices.Marshal(serviceServer, link);
-			Console.WriteLine("Write \"q\" to quit");
-			while (Console.ReadLine() != "q") ;
-		}
-		private void _timer_Elapsed(object sender, ElapsedEventArgs e)
-		{
-			ICollection<CharacterWithScore> x = _game.Players.Values;
-			UpdateCharactersPosition(_game.Players.Values);
-			UpdateCharactersPosition(_game.Monsters);
-			
-			foreach (var player in _game.Players)
+			lock (this)
 			{
-				if (CheckIntersectionWithObsticleOrBorder(player.Value, CharactersSize.Player))
+				/* set channel */
+				channel = new TcpChannel(int.Parse(Shared.Shared.ParseUrl(URLparts.Port, myURL)));
+				ChannelServices.RegisterChannel(channel, true);
+				/*set service */
+				serviceServer = new ServiceServer(this, delays);
+				string link = Shared.Shared.ParseUrl(URLparts.Link, myURL);
+				Console.WriteLine("Starting server on " + myURL + ", link: " + link);
+				RemotingServices.Marshal(serviceServer, link);
+			}
+			while (true)
+			{
+				Console.ReadLine();
+			}
+		}
+		private void Timer_Elapsed(object sender, ElapsedEventArgs e)
+		{
+			Console.WriteLine("Round: " + _game.RoundId + " Updating...");
+			lock (this)
+			{
+				_game.RoundId++;
+				ICollection<CharacterWithScore> x = _game.Players.Values;
+				UpdateCharactersPosition(_game.Players.Values);
+				UpdateCharactersPosition(_game.Monsters);
+
+				foreach (var player in _game.Players)
 				{
-					UpdateCharactersPosition(player.Value, true); // move player back
-				}
-				else
-				{
-					if (CheckIntersectionWithMonster(player.Value))
+					if (CheckIntersectionWithObsticleOrBorder(player.Value, CharactersSize.Player))
 					{
-						player.Value.X = -CharactersSize.Player;
-						player.Value.Y = 0;
-						delays.SendWithDelay(player.Key, (Action<bool>)_clientsDict[player.Key].GameEnded, new object[] { false });
+						UpdateCharactersPosition(player.Value, true); // move player back
 					}
 					else
 					{
-						if (CheckIntersectionWithCoins(player.Value))
+						if (CheckIntersectionWithMonster(player.Value))
 						{
-							player.Value.Score++;
-							if (_game.Coins.Count == 0)
+							player.Value.X = -CharactersSize.Player;
+							player.Value.Y = 0;
+							delays.SendWithDelay(player.Key, (Action<bool>)_clientsDict[player.Key].GameEnded, new object[] { false });
+						}
+						else
+						{
+							if (CheckIntersectionWithCoins(player.Value))
 							{
-								foreach (var client in _clientsDict)
+								player.Value.Score++;
+								if (_game.Coins.Count == 0)
 								{
-									delays.SendWithDelay(client.Key, (Action<bool>)client.Value.GameEnded, new object[] { true });
+									foreach (var client in _clientsDict)
+									{
+										delays.SendWithDelay(client.Key, (Action<bool>)client.Value.GameEnded, new object[] { true });
+									}
 								}
 							}
 						}
 					}
 				}
-			}
-
-			foreach (Character monster in _game.Monsters)
-			{
-				if (CheckIntersectionWithObsticleOrBorder(monster, CharactersSize.Monster))
+				foreach (Character monster in _game.Monsters)
 				{
-					switch (monster.Direction)
+					if (CheckIntersectionWithObsticleOrBorder(monster, CharactersSize.Monster))
 					{
-						case Direction.Up:
-							monster.Direction = Direction.Down;
-							break;
-						case Direction.Down:
-							monster.Direction = Direction.Up;
-							break;
-						case Direction.Right:
-							monster.Direction = Direction.Left;
-							break;
-						case Direction.Left:
-							monster.Direction = Direction.Right;
-							break;
+						switch (monster.Direction)
+						{
+							case Direction.Up:
+								monster.Direction = Direction.Down;
+								break;
+							case Direction.Down:
+								monster.Direction = Direction.Up;
+								break;
+							case Direction.Right:
+								monster.Direction = Direction.Left;
+								break;
+							case Direction.Left:
+								monster.Direction = Direction.Right;
+								break;
+						}
 					}
 				}
 			}
-			UpdateGame();
-			foreach(var player in _game.Players.Values)
+			SendUpdatedGameToClients(_game);
+			foreach (var player in _game.Players.Values)
 			{
 				player.Direction = Direction.No;
 			}
@@ -133,7 +138,7 @@ namespace pacmanServer
 
 		private bool CheckIntersectionWithMonster(CharacterWithScore player)
 		{
-			foreach(Character monster in _game.Monsters)
+			foreach (Character monster in _game.Monsters)
 			{
 				if (CheckIntersection(player, CharactersSize.Player, monster, CharactersSize.Monster))
 				{
@@ -143,32 +148,16 @@ namespace pacmanServer
 			return false;
 		}
 
-
-		private void UpdateGame()
+		private void SendUpdatedGameToClients(Game game)
 		{
-			int sec = 0;
 			foreach (var client in _clientsDict)
 			{
-				if (_delays.TryGetValue(client.Key, out sec))
-				{
-					//_delays_count.TryGetValue(client.Key, out count);
-					//count = (count - (int)_timer.Interval) % sec;
-					_delays_count[client.Key] = (_delays_count[client.Key] - (int)_timer.Interval) % sec;
-					Console.WriteLine(_delays_count[client.Key]);
-					
-					if (_delays_count[client.Key] > _timer.Interval) {
-						continue;
-					}
-					_delays_count[client.Key] = sec;
-					// Console.WriteLine(_delays_count[client.Key]);
-				}
-				delays.SendWithDelay(client.Key, (Action<Game>)client.Value.GameUpdate, new object[] { _game });
+				delays.SendWithDelay(client.Key, (Action<Game>)client.Value.GameUpdate, new object[] { game });
 			}
 		}
 
 		private bool CheckIntersectionWithCoins(CharacterWithScore player)
 		{
-			//ToDo
 			for (int i = 0; i < _game.Coins.Count; i++)
 			{
 				if (CheckIntersection(player, CharactersSize.Player, new Obsticle(_game.Coins.ElementAt(i), new Position(CharactersSize.coin))))
@@ -217,7 +206,7 @@ namespace pacmanServer
 			switch (character.Direction)
 			{
 				case Direction.Down:
-					character.Y += _speed * (back?-1:1);
+					character.Y += _speed * (back ? -1 : 1);
 					break;
 				case Direction.Up:
 					character.Y -= _speed * (back ? -1 : 1);
@@ -273,31 +262,32 @@ namespace pacmanServer
 			return intersec;
 		}
 
-		public bool RegisterPlayer(string pId, string clientURL)
+		public void RegisterPlayer(string pId, string clientURL)
 		{
 			if (_numPlayers == _maxNumPlayers)
 			{
 				Console.WriteLine("SERVER FULL and playeer " + pId + " with url " + clientURL + " try to connect");
-				return false;
 			}
-			Console.WriteLine("Playeer " + pId + " with url " + clientURL + " is connected");
-
-			_game.Players.Add(pId, new CharacterWithScore() { X = 8, Y = 40 * (_game.Players.Count + 1) });
-
-			/* get service */
-			_clientsList.Add(new Client(pId, clientURL));
-			_clientsDict.Add(pId, (IServiceClient)Activator.GetObject(
-				typeof(IServiceClient),
-				clientURL));
-			if (++_numPlayers == _maxNumPlayers)
+			lock (this)
 			{
-				GameStart();
+				Console.WriteLine("Playeer " + pId + " with url " + clientURL + " is connected");
+
+				_game.Players.Add(pId, new CharacterWithScore() { X = 8, Y = 40 * (_game.Players.Count + 1) });
+
+				/* get service */
+				_clientsList.Add(new Client(pId, clientURL));
+				_clientsDict.Add(pId, (IServiceClient)Activator.GetObject(
+					typeof(IServiceClient),
+					clientURL));
+				if (++_numPlayers == _maxNumPlayers)
+				{
+					GameStart();
+				}
+				else
+				{
+					Console.WriteLine("Waiting for " + (_maxNumPlayers - _numPlayers) + " more players");
+				}
 			}
-			else
-			{
-				Console.WriteLine("Waiting for " + (_maxNumPlayers - _numPlayers) + " more players");
-			}
-			return true;
 		}
 
 		private void GameStart()
@@ -314,7 +304,7 @@ namespace pacmanServer
 					Position coin = new Position() { X = 8 + i * 40, Y = 40 + j * 40 };
 					if (!CheckIntersectionWithObsticleOrBorder(coin, CharactersSize.coin))
 					{
-						if(!CheckIntersectionWithPlayer(coin, CharactersSize.coin))
+						if (!CheckIntersectionWithPlayer(coin, CharactersSize.coin))
 						{
 							_game.Coins.Add(coin);
 						}
@@ -333,7 +323,7 @@ namespace pacmanServer
 
 		private bool CheckIntersectionWithPlayer(Position p, int pSize)
 		{
-			foreach(Position player in _game.Players.Values)
+			foreach (Position player in _game.Players.Values)
 			{
 				if (CheckIntersection(player, CharactersSize.Player, p, pSize))
 					return true;
@@ -356,7 +346,7 @@ namespace pacmanServer
 		}
 		public void Crash()
 		{
-			Environment.Exit(0);   
+			Environment.Exit(0);
 		}
 		public void GlobalStatus()
 		{
@@ -364,12 +354,6 @@ namespace pacmanServer
 		}
 		public void InjectDelay(string pId, int mSecDelay)
 		{
-			/*
-			_delays.Add(PID, mSecDelay);
-			_delays_count.Add(PID, mSecDelay);
-			_delay = mSecDelay;
-			TOMAS
-			 */
 			delays.AddDelay(pId, mSecDelay);
 		}
 	}

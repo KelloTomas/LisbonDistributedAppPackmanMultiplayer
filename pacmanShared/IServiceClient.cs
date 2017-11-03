@@ -10,4 +10,3 @@ namespace Shared
 		void GameEnded(bool win);
 	}
 }
- 

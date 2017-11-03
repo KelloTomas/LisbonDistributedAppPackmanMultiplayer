@@ -1,4 +1,5 @@
-﻿using Shared;
+﻿using CommonTypes;
+using Shared;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -12,15 +13,18 @@ using System.Windows.Forms;
 
 
 
-namespace pacmanClient {
-    public partial class Form1 : Form {
+namespace pacmanClient
+{
+	internal partial class Form1 : Form
+	{
 		#region private...
+		private Delays _delays = new Delays();
 		private string filename = null;
+		private string _serverPId;
 		private Direction _direction = Direction.No;
 		private List<PictureBox> players = new List<PictureBox>();
 		private List<PictureBox> monsters = new List<PictureBox>();
 		private List<PictureBox> coins = new List<PictureBox>();
-
 
 		private int _roundId = 0;
 		private Game _game;
@@ -36,7 +40,7 @@ namespace pacmanClient {
 			BeginInvoke(new MethodInvoker(delegate
 			{
 				label2.Visible = true;
-				label2.Text = win?"You win":"Game Over";
+				label2.Text = win ? "You win" : "Game Over";
 				_state = State.Dead;
 			}));
 		}
@@ -46,15 +50,16 @@ namespace pacmanClient {
 		#endregion
 
 		#region constructor...
-		public Form1(string[] args) {
+		public Form1(string[] args)
+		{
 			InitializeComponent();
-            label2.Visible = false;
+			label2.Visible = false;
 			_pId = args[0];
 			string myURL = args[1];
-			string serverPID = args[2];
+			_serverPId = args[2];
 			string serverURL = args[3];
 			int mSec = int.Parse(args[4]);
-			if(args.Count() == 6)
+			if (args.Count() == 6)
 			{
 				filename = args[5];
 			}
@@ -68,7 +73,7 @@ namespace pacmanClient {
 			ChannelServices.RegisterChannel(channel, true);
 
 			/*set service */
-			serviceClient = new ServiceClientWithState(_pId, this);
+			serviceClient = new ServiceClientWithState(this, _delays);
 			RemotingServices.Marshal(serviceClient, Shared.Shared.ParseUrl(URLparts.Link, myURL));
 
 			/* get service */
@@ -77,11 +82,7 @@ namespace pacmanClient {
 				serverURL);
 			try
 			{
-				if (!server.RegisterPlayer(_pId, myURL))
-				{
-					throw new Exception();
-				//ToDo cant connect, server full
-				}
+				_delays.SendWithDelay(_serverPId, (Action<string, string>)server.RegisterPlayer, new object[] { _pId, myURL });
 			}
 			catch
 			{
@@ -91,38 +92,43 @@ namespace pacmanClient {
 		#endregion
 
 		#region controller handler
-		private void KeyIsDown(object sender, KeyEventArgs e) {
-            if (e.KeyCode == Keys.Left) {
+		private void KeyIsDown(object sender, KeyEventArgs e)
+		{
+			if (e.KeyCode == Keys.Left)
+			{
 				_direction = Direction.Left;
-            }
-            if (e.KeyCode == Keys.Right)
+			}
+			if (e.KeyCode == Keys.Right)
 			{
 				_direction = Direction.Right;
 			}
-            if (e.KeyCode == Keys.Up)
+			if (e.KeyCode == Keys.Up)
 			{
 				_direction = Direction.Up;
 			}
-            if (e.KeyCode == Keys.Down)
+			if (e.KeyCode == Keys.Down)
 			{
 				_direction = Direction.Down;
 			}
-            if (e.KeyCode == Keys.Enter) {
-                    tbMsg.Enabled = true; tbMsg.Focus();
-               }
-        }
+			if (e.KeyCode == Keys.Enter)
+			{
+				tbMsg.Enabled = true; tbMsg.Focus();
+			}
+		}
 
-        private void KeyIsUp(object sender, KeyEventArgs e) {
-            if (e.KeyCode == Keys.Left
-            || e.KeyCode == Keys.Right
-            || e.KeyCode == Keys.Up
-            || e.KeyCode == Keys.Down)
+		private void KeyIsUp(object sender, KeyEventArgs e)
+		{
+			if (e.KeyCode == Keys.Left
+			|| e.KeyCode == Keys.Right
+			|| e.KeyCode == Keys.Up
+			|| e.KeyCode == Keys.Down)
 			{
 				_direction = Direction.No;
 			}
-        }
+		}
 
-        private void Timer_Tick(object sender, EventArgs e) {
+		private void Timer_Tick(object sender, EventArgs e)
+		{
 			if (_state == State.Dead)
 			{
 				_timer.Stop();
@@ -130,59 +136,68 @@ namespace pacmanClient {
 			}
 			else
 			{
-				server.SetMove(_pId, _roundId++, _direction);
+				Console.WriteLine("Round: " + _roundId + " Sending direction: ", _direction.ToString());
+				_delays.SendWithDelay(_serverPId, (Action<string, int, Direction>)server.SetMove, new object[] { _pId, _roundId++, _direction });
 			}
-        }
+		}
 
-        private void TbMsg_KeyDown(object sender, KeyEventArgs e) {
-            if (e.KeyCode == Keys.Enter) {
+		private void TbMsg_KeyDown(object sender, KeyEventArgs e)
+		{
+			if (e.KeyCode == Keys.Enter)
+			{
 				foreach (IServiceClient client in _clients.Values)
 				{
 					client.MessageReceive(_pId, tbMsg.Text);
 				}
-                tbChat.Text += "\r\n" + tbMsg.Text;
+				tbChat.Text += "\r\n" + tbMsg.Text;
 				tbMsg.Clear();
 				tbMsg.Enabled = false;
 				Focus();
-            }
-        }
+			}
+		}
 		#endregion
 
 		#region Client service...
 		public void GameStarted(string serverPId, List<Client> clients, Game game)
 		{
-            Console.WriteLine("game started");
+			Console.WriteLine("game started");
 			_game = game;
 
 			BeginInvoke(new MethodInvoker(delegate
 			{
-				foreach(var coin in game.Coins)
+				lock (this)
 				{
-					coins.Add(DrawNewCharacterToGame(Controls, Properties.Resources.coinPNG, CharactersSize.coin));
+					foreach (var coin in game.Coins)
+					{
+						coins.Add(DrawNewCharacterToGame(Controls, Properties.Resources.coinPNG, CharactersSize.coin));
+					}
+					foreach (var player in game.Players)
+					{
+						players.Add(DrawNewCharacterToGame(Controls, Properties.Resources.Right, CharactersSize.Player));
+					}
+					foreach (var monster in game.Monsters)
+					{
+						monsters.Add(DrawNewCharacterToGame(Controls, Properties.Resources.red_guy, CharactersSize.Monster));
+					}
+					foreach (var obsticle in game.Obsticles)
+					{
+						DrawObsticle(Controls, obsticle);
+					}
+					UpdateCoinPosition(game, true);
 				}
-				foreach (var player in game.Players)
-				{
-					players.Add(DrawNewCharacterToGame(Controls, Properties.Resources.Right, CharactersSize.Player));
-				}
-				foreach (var monster in game.Monsters)
-				{
-					monsters.Add(DrawNewCharacterToGame(Controls, Properties.Resources.red_guy, CharactersSize.Monster));
-				}
-				foreach (var obsticle in game.Obsticles)
-				{
-					DrawObsticle(Controls, obsticle);
-				}
-				UpdateCoinPosition(true);
 			}));
-			foreach (Client client in clients)
+			lock (this)
 			{
-				if (client.PId == _pId)
-					continue;
-				_clients.Add(client.PId, (IServiceClientWithState)Activator.GetObject(
-				typeof(IServiceClient),
-				client.URL));
+				foreach (Client client in clients)
+				{
+					if (client.PId == _pId)
+						continue;
+					_clients.Add(client.PId, (IServiceClientWithState)Activator.GetObject(
+					typeof(IServiceClient),
+					client.URL));
+				}
+				_timer.Start();
 			}
-			_timer.Start();
 		}
 
 		private void RemoveCharacterFromForm(PictureBox picture)
@@ -212,7 +227,7 @@ namespace pacmanClient {
 			return ghost;
 		}
 
-		void DrawObsticle(Control.ControlCollection Controls, Obsticle o)
+		private void DrawObsticle(Control.ControlCollection Controls, Obsticle o)
 		{
 			PictureBox obsticle = new PictureBox();
 			((ISupportInitialize)(obsticle)).BeginInit();
@@ -232,37 +247,41 @@ namespace pacmanClient {
 		public void GameUpdate(Game game)
 		{
 			_game = game;
-			UpdatePlayersPosition();
-			UpdateMonsterPosition();
-			UpdateCoinPosition();
-		}
-
-		private void UpdatePlayersPosition()
-		{
-			for (int i = 0; i < _game.Players.Count; i++)
+			Console.WriteLine("Updating game, round: " + game.RoundId);
+			lock (this)
 			{
-				UpdatePlayerPosition(_game, i);
+				UpdatePlayersPosition(game);
+				UpdateMonsterPosition(game);
+				UpdateCoinPosition(game);
 			}
 		}
 
-		private void UpdateMonsterPosition()
+		private void UpdatePlayersPosition(Game game)
 		{
-			for (int i = 0; i < _game.Monsters.Count; i++)
+			for (int i = 0; i < game.Players.Count; i++)
 			{
-				monsters.ElementAt(i).Left = _game.Monsters.ElementAt(i).X;
-				monsters.ElementAt(i).Top = _game.Monsters.ElementAt(i).Y;
+				UpdatePlayerPosition(game, i);
 			}
 		}
 
-		private void UpdateCoinPosition(bool forceRedraw = false)
+		private void UpdateMonsterPosition(Game game)
 		{
-			if (coins.Count != _game.Coins.Count || forceRedraw)
+			for (int i = 0; i < game.Monsters.Count; i++)
+			{
+				monsters.ElementAt(i).Left = game.Monsters.ElementAt(i).X;
+				monsters.ElementAt(i).Top = game.Monsters.ElementAt(i).Y;
+			}
+		}
+
+		private void UpdateCoinPosition(Game game, bool forceRedraw = false)
+		{
+			if (coins.Count != game.Coins.Count || forceRedraw)
 			{
 				int i;
-				for (i = 0; i < _game.Coins.Count; i++)
+				for (i = 0; i < game.Coins.Count; i++)
 				{
-					coins.ElementAt(i).Left = _game.Coins.ElementAt(i).X;
-					coins.ElementAt(i).Top = _game.Coins.ElementAt(i).Y;
+					coins.ElementAt(i).Left = game.Coins.ElementAt(i).X;
+					coins.ElementAt(i).Top = game.Coins.ElementAt(i).Y;
 				}
 				for (int x = i; x < coins.Count; x++)
 				{
@@ -314,23 +333,23 @@ namespace pacmanClient {
 		internal void Crash()
 		{
 			_state = State.Dead;
-            Close();
+			Close();
 		}
 		#endregion
 
 		#region Control service...
 		internal void GlobalStatus()
 		{
-            Console.WriteLine("Global Status:");
-			foreach(var client in _clients)
+			Console.WriteLine("Global Status:");
+			foreach (var client in _clients)
 			{
-				Console.WriteLine("client: " + client.Key + " is in state " + (client.Value == null?"offline":"online"));
+				Console.WriteLine("client: " + client.Key + " is in state " + (client.Value == null ? "offline" : "online"));
 			}
 		}
 		internal void InjectDelay(string PID, int mSecDelay)
 		{
-        
-        }
+
+		}
 		internal void Freez()
 		{
 			throw new NotImplementedException();
@@ -358,6 +377,6 @@ namespace pacmanClient {
 			sw.Close();
 			return output;
 		}
-#endregion
+		#endregion
 	}
 }
