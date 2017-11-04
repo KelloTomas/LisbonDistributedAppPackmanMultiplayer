@@ -37,7 +37,6 @@ namespace CommonTypes
 					_frozenCount--;
 				}
 				_isFrozen = false;
-				//Monitor.Pulse(this);
 			}
 		}
 

@@ -172,6 +172,11 @@ namespace PuppetMaster
 						program.InjectDelay(dstPID, 3000);
 					break;
 				case "LocalState":
+					processPId = parts[1];
+					int round;
+					int.TryParse(parts[2], out round);
+					if (activators.TryGetValue(processPId, out program))
+						Console.WriteLine(program.LocalState(round));
 					break;
 				case "Wait":
 					if (timer.Enabled)
