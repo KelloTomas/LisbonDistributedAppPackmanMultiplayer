@@ -1,10 +1,12 @@
 StartServer myServer tcp://localhost:8085/PCSServicesName tcp://localhost:8086/ServerServicesName 200 2
 Wait 1000
 StartClient myClient1 tcp://localhost:8085/PCSServicesName tcp://localhost:8087/ClientServicesName 200 2
-#Wait 1000
+Wait 1000
 StartClient myClient2 tcp://localhost:8085/PCSServicesName tcp://localhost:8088/ClientServicesName 200 2
 #Wait 5000
 #Crash myServer
 #Wait 5000
 #Crash myClient1
 #GlobalStatus
+#InjectDelay myServer myClient1
+#Freeze myClient1

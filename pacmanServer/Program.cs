@@ -16,6 +16,7 @@ namespace pacmanServer
 	{
 		#region private fields...
 		private Delays delays = new Delays();
+		private Frozens _frozens = new Frozens();
 		private Obsticle Board;
 		private string _pId;
 		private int _maxNumPlayers;
@@ -56,7 +57,7 @@ namespace pacmanServer
 				channel = new TcpChannel(int.Parse(Shared.Shared.ParseUrl(URLparts.Port, myURL)));
 				ChannelServices.RegisterChannel(channel, true);
 				/*set service */
-				serviceServer = new ServiceServer(this, delays);
+				serviceServer = new ServiceServer(this, _frozens);
 				string link = Shared.Shared.ParseUrl(URLparts.Link, myURL);
 				Console.WriteLine("Starting server on " + myURL + ", link: " + link);
 				RemotingServices.Marshal(serviceServer, link);
@@ -355,6 +356,14 @@ namespace pacmanServer
 		public void InjectDelay(string pId, int mSecDelay)
 		{
 			delays.AddDelay(pId, mSecDelay);
+		}
+		public void Freez()
+		{
+			_frozens.Freez();	
+		}
+		public void UnFreez()
+		{
+			_frozens.UnFreez();
 		}
 	}
 }

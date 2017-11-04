@@ -19,6 +19,7 @@ namespace pacmanClient
 	{
 		#region private...
 		private Delays _delays = new Delays();
+		private Frozens _frozens = new Frozens();
 		private string filename = null;
 		private string _serverPId;
 		private Direction _direction = Direction.No;
@@ -73,7 +74,7 @@ namespace pacmanClient
 			ChannelServices.RegisterChannel(channel, true);
 
 			/*set service */
-			serviceClient = new ServiceClientWithState(this, _delays);
+			serviceClient = new ServiceClientWithState(this, _frozens);
 			RemotingServices.Marshal(serviceClient, Shared.Shared.ParseUrl(URLparts.Link, myURL));
 
 			/* get service */
@@ -354,11 +355,11 @@ namespace pacmanClient
         }
 		internal void Freez()
 		{
-			throw new NotImplementedException();
+			_frozens.Freez();
 		}
 		internal void UnFreez()
 		{
-			throw new NotImplementedException();
+			_frozens.UnFreez();
 		}
 		internal string LocalState()
 		{

@@ -9,15 +9,17 @@ namespace pacmanClient
 	{
 		#region private fields...
 		private Form1 _form;
+		private Frozens _frozens;
+
 		public State State { get; set; }
-		private Delays _delays;
+
 		#endregion
 
 		#region Constructor...
-		internal ServiceClientWithState(Form1 form, Delays delays)
+		internal ServiceClientWithState(Form1 form, Frozens frozens)
 		{
 			_form = form;
-			_delays = delays;
+			_frozens = frozens;
 			State = State.Playing;
 		}
 		#endregion
@@ -25,26 +27,23 @@ namespace pacmanClient
 		#region IServiceClient
 		public void MessageReceive(string pId, string msg)
 		{
-			_delays.IsFrozen();
-			_form.MessageReceive(pId, msg);
+			_frozens.Freeze((Action<string, string>)_form.MessageReceive, new object[] { pId, msg });
 		}
 
 		public void GameStarted(string serverPId, List<Client> clients, Game game)
 		{
-			_delays.IsFrozen();
-			_form.GameStarted(serverPId, clients, game);
+			_frozens.Freeze((Action<string, List<Client>, Game>)_form.GameStarted, new object[] { serverPId, clients, game });
 		}
 
 		public void GameUpdate(Game game)
 		{
-			_delays.IsFrozen();
-			_form.GameUpdate(game);
+			_frozens.Freeze((Action<Game>)_form.GameUpdate, new object[] { game });
 		}
 
 		public void GameEnded(bool win)
 		{
-			_delays.IsFrozen();
 			_form.GameEnded(win);
+			_frozens.Freeze((Action<bool>)_form.GameEnded, new object[] { win });
 		}
 		#endregion
 

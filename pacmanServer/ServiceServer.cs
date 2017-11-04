@@ -8,28 +8,26 @@ namespace pacmanServer
 	{
 		#region private fields...
 		private Program _program;
-		private Delays _delays;
+		private Frozens _frozens;
 		#endregion
 
 		#region constructor...
-		internal ServiceServer(Program program, Delays delays)
+		internal ServiceServer(Program program, Frozens frozens)
 		{
 			_program = program;
-			_delays = delays;
+			_frozens = frozens;
 		}
 		#endregion
 
 		#region IServiceServer
 		public void RegisterPlayer(string pId, string clientURL)
 		{
-			_delays.IsFrozen();
-			_program.RegisterPlayer(pId, clientURL);
+			_frozens.Freeze((Action<string, string>)_program.RegisterPlayer, pId, clientURL);
 		}
 
 		public void SetMove(string pId, int roundId, Direction direction)
 		{
-			_delays.IsFrozen();
-			_program.SetMove(pId, roundId, direction);
+			_frozens.Freeze((Action<string, int, Direction>)_program.SetMove, pId, roundId, direction);
 		}
 		#endregion
 
@@ -50,12 +48,12 @@ namespace pacmanServer
 
 		public void Freez()
 		{
-			throw new NotImplementedException();
+			_program.Freez();
 		}
 
 		public void UnFreez()
 		{
-			throw new NotImplementedException();
+			_program.UnFreez();
 		}
 
 		public void InjectDelay(string PID, int mSecDelay)

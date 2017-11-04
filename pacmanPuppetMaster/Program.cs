@@ -156,8 +156,14 @@ namespace PuppetMaster
 					}
 					break;
 				case "Freeze":
+					processPId = parts[1];
+					if (activators.TryGetValue(processPId, out program))
+						program.Freez();
 					break;
 				case "Unfreeze":
+					processPId = parts[1];
+					if (activators.TryGetValue(processPId, out program))
+						program.UnFreez();
 					break;
 				case "InjectDelay":
 					string srcPID = parts[1];
