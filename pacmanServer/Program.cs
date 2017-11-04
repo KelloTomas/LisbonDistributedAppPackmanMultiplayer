@@ -79,13 +79,13 @@ namespace pacmanServer
 
 				foreach (var player in _game.Players)
 				{
-					if (CheckIntersectionWithObsticleOrBorder(player.Value, CharactersSize.Player))
+					if (CheckIntersectionWithBorder(player.Value))
 					{
 						UpdateCharactersPosition(player.Value, true); // move player back
 					}
 					else
 					{
-						if (CheckIntersectionWithMonster(player.Value))
+						if (CheckIntersectionWithMonster(player.Value) || CheckIntersectionWithObsticle(player.Value, CharactersSize.Player))
 						{
 							player.Value.X = -CharactersSize.Player;
 							player.Value.Y = 0;
@@ -169,7 +169,17 @@ namespace pacmanServer
 			}
 			return false;
 		}
-
+		private bool CheckIntersectionWithObsticle(Position character, int characterSize)
+		{
+			foreach (Obsticle obsticle in _game.Obsticles)
+			{
+				if (CheckIntersection(character, characterSize, obsticle))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
 		private bool CheckIntersectionWithObsticleOrBorder(Position character, int characterSize)
 		{
 			foreach (Obsticle obsticle in _game.Obsticles)
