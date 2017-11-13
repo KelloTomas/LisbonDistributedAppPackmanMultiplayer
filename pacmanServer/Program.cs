@@ -89,6 +89,7 @@ namespace pacmanServer
 						{
 							player.Value.X = -CharactersSize.Player;
 							player.Value.Y = 0;
+							player.Value.state = State.Dead;
 							delays.SendWithDelay(player.Key, (Action<bool>)_clientsDict[player.Key].GameEnded, new object[] { false });
 						}
 						else
@@ -113,17 +114,17 @@ namespace pacmanServer
 					{
 						switch (monster.Direction)
 						{
-							case Direction.Up:
-								monster.Direction = Direction.Down;
+							case Direction.UP:
+								monster.Direction = Direction.DOWN;
 								break;
-							case Direction.Down:
-								monster.Direction = Direction.Up;
+							case Direction.DOWN:
+								monster.Direction = Direction.UP;
 								break;
-							case Direction.Right:
-								monster.Direction = Direction.Left;
+							case Direction.RIGHT:
+								monster.Direction = Direction.LEFT;
 								break;
-							case Direction.Left:
-								monster.Direction = Direction.Right;
+							case Direction.LEFT:
+								monster.Direction = Direction.RIGHT;
 								break;
 						}
 					}
@@ -216,19 +217,19 @@ namespace pacmanServer
 		{
 			switch (character.Direction)
 			{
-				case Direction.Down:
+				case Direction.DOWN:
 					character.Y += _speed * (back ? -1 : 1);
 					break;
-				case Direction.Up:
+				case Direction.UP:
 					character.Y -= _speed * (back ? -1 : 1);
 					break;
-				case Direction.Left:
+				case Direction.LEFT:
 					character.X -= _speed * (back ? -1 : 1);
 					break;
-				case Direction.Right:
+				case Direction.RIGHT:
 					character.X += _speed * (back ? -1 : 1);
 					break;
-				case Direction.No:
+				case Direction.NO:
 				default:
 					break;
 			}
@@ -323,9 +324,9 @@ namespace pacmanServer
 				}
 			}
 
-			_game.Monsters.Add(new Character() { X = 301, Y = 72, Direction = Direction.Left });
-			_game.Monsters.Add(new Character() { X = 180, Y = 73, Direction = Direction.Left });
-			_game.Monsters.Add(new Character() { X = 221, Y = 273, Direction = Direction.Left });
+			_game.Monsters.Add(new Character() { X = 301, Y = 72, Direction = Direction.LEFT });
+			_game.Monsters.Add(new Character() { X = 180, Y = 73, Direction = Direction.LEFT });
+			_game.Monsters.Add(new Character() { X = 221, Y = 273, Direction = Direction.LEFT });
 
 			ThreadStart ts = new ThreadStart(BroadcastGameStart);
 			Thread t = new Thread(ts);
@@ -356,25 +357,38 @@ namespace pacmanServer
 		{
 			_game.Players[pId].Direction = direction;
 		}
+
+		#region Control service...
 		public void Crash()
 		{
 			Environment.Exit(0);
 		}
-		public void GlobalStatus()
-		{
-			Console.WriteLine("Global Status: online");
-		}
+
 		public void InjectDelay(string pId, int mSecDelay)
 		{
 			delays.AddDelay(pId, mSecDelay);
 		}
+
 		public void Freez()
 		{
-			_frozens.Freez();	
+			_frozens.Freez();
 		}
 		public void UnFreez()
 		{
 			_frozens.UnFreez();
 		}
+#endregion
+
+		#region Log local and global state...
+		internal void GlobalStatus()
+		{
+			LogLocalGlobal.GlobalStatus(_game);
+		}
+
+		internal string LocalState()
+		{
+			return LogLocalGlobal.LocalState(_game, _pId);
+		}
+		#endregion
 	}
 }

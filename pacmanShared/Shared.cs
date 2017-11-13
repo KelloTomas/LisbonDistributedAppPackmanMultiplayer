@@ -61,7 +61,7 @@ namespace Shared
 	{
 		public Character()
 		{
-			Direction = Direction.No;
+			Direction = Direction.NO;
 		}
         public Character(Character character)
         {
@@ -81,6 +81,7 @@ namespace Shared
         {
             Score = character.Score;
         }
+		public State state = State.Playing;
         public int Score { get; set; }
 	}
 
@@ -122,11 +123,11 @@ namespace Shared
 	[Serializable]
 	public enum Direction
 	{
-		No,
-		Up,
-		Down,
-		Left,
-		Right
+		NO,
+		UP,
+		DOWN,
+		LEFT,
+		RIGHT
 	}
 
 	public enum URLparts
