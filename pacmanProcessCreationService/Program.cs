@@ -44,7 +44,7 @@ namespace ProcessCreationService
 				Console.WriteLine("Starting PCS on " + myURL + ", link: " + link + ", port: " + port);
 				/* set channel */
 				channel = new TcpChannel(port);
-				ChannelServices.RegisterChannel(channel, true);
+				ChannelServices.RegisterChannel(channel, false);
 
 				/*set service */
 				servicePCS = new ServicePCS(this);

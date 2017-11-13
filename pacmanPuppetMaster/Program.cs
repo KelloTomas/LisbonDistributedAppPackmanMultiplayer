@@ -30,7 +30,7 @@ namespace PuppetMaster
 		void Init(string[] args)
 		{
 			TcpChannel channel = new TcpChannel();
-			ChannelServices.RegisterChannel(channel, true);
+			ChannelServices.RegisterChannel(channel, false);
 			timer = new System.Timers.Timer
 			{
 				AutoReset = false

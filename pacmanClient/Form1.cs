@@ -72,7 +72,7 @@ namespace pacmanClient
 
 			/* set channel */
 			channel = new TcpChannel(int.Parse(tmp));
-			ChannelServices.RegisterChannel(channel, true);
+			ChannelServices.RegisterChannel(channel, false);
 
 			/*set service */
 			serviceClient = new ServiceClientWithState(this, _frozens);
@@ -379,6 +379,7 @@ namespace pacmanClient
 			StreamWriter sw = new StreamWriter("LocalState-" + _pId + "-" + _roundId);
 			sw.Write(output);
 			sw.Close();
+            return "NotImplemented";
 			return output;
 		}
 		#endregion

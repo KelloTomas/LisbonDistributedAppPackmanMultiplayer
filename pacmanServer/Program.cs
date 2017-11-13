@@ -55,7 +55,7 @@ namespace pacmanServer
 			{
 				/* set channel */
 				channel = new TcpChannel(int.Parse(Shared.Shared.ParseUrl(URLparts.Port, myURL)));
-				ChannelServices.RegisterChannel(channel, true);
+				ChannelServices.RegisterChannel(channel, false);
 				/*set service */
 				serviceServer = new ServiceServer(this, _frozens);
 				string link = Shared.Shared.ParseUrl(URLparts.Link, myURL);

@@ -43,7 +43,8 @@ namespace pacmanServer
 
 		public string LocalState(int roundId)
 		{
-			throw new NotImplementedException();
+			//throw new NotImplementedException();
+            return "NotImplemented";
 		}
 
 		public void Freez()
