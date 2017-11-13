@@ -55,7 +55,7 @@
 			this.tbMsg.Name = "tbMsg";
 			this.tbMsg.Size = new System.Drawing.Size(100, 20);
 			this.tbMsg.TabIndex = 143;
-			this.tbMsg.KeyDown += new System.Windows.Forms.KeyEventHandler(this.TbMsg_KeyDown);
+			this.tbMsg.KeyDown += new System.Windows.Forms.KeyEventHandler(this.MessageSend);
 			// 
 			// tbChat
 			// 

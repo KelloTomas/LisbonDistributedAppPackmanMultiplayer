@@ -40,7 +40,7 @@ namespace pacmanClient
 		{
 			lock(this)
 			{
-				Message m = new Message() { Clock = clocks, Msg = msg, Id =id };
+				Message m = new Message() { Clock = clocks, Msg = id + ": " + msg, Id =id };
 				if (IsValidMsg(m))
 				{
 					AddMessage(m);
@@ -85,10 +85,9 @@ namespace pacmanClient
 			return true;
 		}
 
-		internal int[] IncreaseVectorClock(string msg)
+		internal int[] IncreaseVectorClock()
 		{
 			vectorClock[_myId]++;
-			AddMessage(new Message() { Clock = vectorClock, Id = _myId, Msg = msg });
 			return vectorClock;
 		}
 
@@ -97,7 +96,7 @@ namespace pacmanClient
 			string text = "";
 			foreach(Message m in messages)
 			{
-				text += m.Msg + "\n\r";
+				text += m.Msg + "\r\n";
 			}
 			return text;
 		}

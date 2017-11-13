@@ -10,7 +10,6 @@ namespace pacmanClient
 		#region private fields...
 		private Form1 _form;
 		private Frozens _frozens;
-
 		public State State { get; set; }
 
 		#endregion
@@ -27,7 +26,7 @@ namespace pacmanClient
 		#region IServiceClient
 		public void MessageReceive(int[] vectorClock, int pId, string msg)
 		{
-			_frozens.Freeze((Action< int[] , int , string >)_form.SetMsgBox, new object[] { vectorClock, pId, msg });
+			_frozens.Freeze((Action< int[] , int , string >)_form.MessageReceive, new object[] { vectorClock, pId, msg });
 		}
 
 		public void GameStarted(string serverPId, int myId, List<Client> clients, Game game)

@@ -140,7 +140,6 @@ namespace pacmanClient
 			{
 				_roundId++;
 				Direction d;
-				Console.WriteLine("R:" + _roundId + "read" + commandFromFile.Item1);
 				if (_roundId == commandFromFile.Item1)
 				{
 					d = commandFromFile.Item2;
@@ -156,18 +155,25 @@ namespace pacmanClient
 			}
 		}
 
-		private void TbMsg_KeyDown(object sender, KeyEventArgs e)
+		private void MessageSend(object sender, KeyEventArgs e)
 		{
-			if (e.KeyCode == Keys.Enter)
+			lock (this)
 			{
-				foreach (KeyValuePair<string, IServiceClientWithState> client in _clients)
+				if (e.KeyCode == Keys.Enter)
 				{
-					_delays.SendWithDelay(client.Key, (Action<int[], int, string>)client.Value.MessageReceive, new object[] { _messageQueue.IncreaseVectorClock(tbMsg.Text), _messageQueue.GetMyId(), tbMsg.Text });
+					int[] vectorClock = _messageQueue.IncreaseVectorClock();
+					_messageQueue.NewMessage(vectorClock, _messageQueue.GetMyId(), tbMsg.Text);
+					foreach (KeyValuePair<string, IServiceClientWithState> client in _clients)
+					{
+						client.Value.MessageReceive(vectorClock, _messageQueue.GetMyId(), tbMsg.Text);
+						// ToDo Pedro, with delay it is not received
+						//_delays.SendWithDelay(client.Key, (Action<int[], int, string>)client.Value.MessageReceive, new object[] { vectorClock , _pId, tbMsg.Text });
+					}
+					tbChat.Text = _messageQueue.GetAllMessages();
+					tbMsg.Clear();
+					tbMsg.Enabled = false;
+					Focus();
 				}
-				tbChat.Text += _messageQueue.GetAllMessages();
-				tbMsg.Clear();
-				tbMsg.Enabled = false;
-				Focus();
 			}
 		}
 		#endregion
@@ -345,12 +351,12 @@ namespace pacmanClient
 			}
 		}
 
-		internal void SetMsgBox(int[] vectorClock, int pId, string msg)
+		internal void MessageReceive(int[] vectorClock, int pId, string msg)
 		{
 			_messageQueue.NewMessage(vectorClock, pId, msg);
 			BeginInvoke(new MethodInvoker(delegate
 			{
-				tbChat.Text += msg;
+				tbChat.Text = _messageQueue.GetAllMessages();
 			}));
 		}
 
