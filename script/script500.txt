@@ -1,0 +1,43 @@
+StartServer S1 tcp://1.2.3.4:11000/PCS tcp://1.2.3.4:20001/Server 500 6
+StartClient C1 tcp://1.2.3.4:11000/PCS tcp://1.2.3.4:30001/Client 500 6
+StartClient C2 tcp://1.2.3.4:11000/PCS tcp://1.2.3.4:30002/Client 500 6
+StartClient C3 tcp://1.2.3.4:11000/PCS tcp://1.2.3.4:30003/Client 500 6
+StartClient C4 tcp://1.2.3.5:11000/PCS tcp://1.2.3.5:30004/Client 500 6
+StartClient C5 tcp://1.2.3.5:11000/PCS tcp://1.2.3.5:30005/Client 500 6
+StartClient C6 tcp://1.2.3.5:11000/PCS tcp://1.2.3.5:30006/Client 500 6
+GlobalStatus
+Wait 2500
+LocalState S1 1
+LocalState C1 1
+LocalState C2 1
+LocalState C3 1
+LocalState C4 1
+LocalState C5 1
+LocalState C6 1
+Wait 12500
+LocalState S1 20
+LocalState C1 20
+LocalState C2 20
+LocalState C3 20
+LocalState C4 20
+LocalState C5 20
+LocalState C6 20
+GlobalStatus
+Wait 12500
+LocalState S1 50
+LocalState C1 50
+LocalState C2 50
+LocalState C3 50
+LocalState C4 50
+LocalState C5 50
+LocalState C6 50
+GlobalStatus
+LocalState S1 55
+LocalState C1 55
+LocalState C2 55
+LocalState C3 55
+LocalState C4 55
+LocalState C5 55
+LocalState C6 55
+GlobalStatus
+

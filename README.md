@@ -2,6 +2,8 @@
 
 ## Not implemented
 - Causal order of messages
+- Client process commands
+- Server to ignore delayed commands
 
 ## Implemented
 - whole funkcionality, intersections, application freez, delay and crash
@@ -9,7 +11,10 @@
 ## How to run
 - Build solution as DEBUG with Visual Studio
 - Set "Process creation service" and "Puppet Master" as startup project
-- Run project. Proc. creation service hase location of server and client .exe files in their project location, Debug, Bin. Don't move them
+- Set program arguments: 
+	- Process creation service: url where to listen
+	- Puppet Master: location of commands file
+- Run project. (Process creation service hase location of server and client .exe files in their project location, Debug, Bin. Don't move them)
 
 ## Example of input file for PuppetMaster
 
