@@ -1,14 +1,15 @@
 ﻿using System;
+using Shared;
 using System.Threading;
 
 namespace CommonTypes
 {
+	delegate void FreezeDelegate(Delegate v, params object[] parameters);
 	public class Frozens
 	{
 
 		private int _frozenCount = 0;
 		private bool _isFrozen = false;
-		private delegate void FreezeDelegate(Delegate v, params object[] parameters);
 		FreezeDelegate freeze;
 
 		public void Freez()

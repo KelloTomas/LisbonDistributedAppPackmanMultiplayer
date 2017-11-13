@@ -26,6 +26,7 @@ namespace pacmanClient
 		private List<PictureBox> players = new List<PictureBox>();
 		private List<PictureBox> monsters = new List<PictureBox>();
 		private List<PictureBox> coins = new List<PictureBox>();
+		private MessageQueue _messageQueue;
 
 		private int _roundId = 0;
 		private Game _game;
@@ -148,11 +149,9 @@ namespace pacmanClient
 			{
 				foreach (KeyValuePair<string, IServiceClientWithState> client in _clients)
 				{
-					//client.MessageReceive(_pId, tbMsg.Text);
-                    _delays.SendWithDelay(client.Key, (Action<string, string>)client.Value.MessageReceive, new object[] { _pId, tbMsg.Text });
-
+                    _delays.SendWithDelay(client.Key, (Action<int[], int, string>)client.Value.MessageReceive, new object[] { _messageQueue.IncreaseVectorClock(tbMsg.Text), _messageQueue.GetMyId(), tbMsg.Text });
                 }
-                tbChat.Text += "\r\n" + tbMsg.Text;
+				tbChat.Text += _messageQueue.GetAllMessages();
 				tbMsg.Clear();
 				tbMsg.Enabled = false;
 				Focus();
@@ -161,9 +160,10 @@ namespace pacmanClient
 		#endregion
 
 		#region Client service...
-		public void GameStarted(string serverPId, List<Client> clients, Game game)
+		public void GameStarted(string serverPId, int myId, List<Client> clients, Game game)
 		{
 			Console.WriteLine("game started");
+			_messageQueue = new MessageQueue(clients.Count, myId);
 			_game = game;
 
 			BeginInvoke(new MethodInvoker(delegate
@@ -325,11 +325,12 @@ namespace pacmanClient
 			}
 		}
 
-		public void MessageReceive(string pId, string msg)
+		public void SetMsgBox(int[] vectorClock, int pId, string msg)
 		{
+			_messageQueue.NewMessage(vectorClock, pId, msg);
 			BeginInvoke(new MethodInvoker(delegate
 			{
-				tbChat.Text += pId + ": " + msg + "\r\n";
+				tbChat.Text += msg;
 			}));
 		}
 

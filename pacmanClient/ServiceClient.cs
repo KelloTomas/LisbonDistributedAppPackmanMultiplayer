@@ -25,14 +25,14 @@ namespace pacmanClient
 		#endregion
 
 		#region IServiceClient
-		public void MessageReceive(string pId, string msg)
+		public void MessageReceive(int[] vectorClock, int pId, string msg)
 		{
-			_frozens.Freeze((Action<string, string>)_form.MessageReceive, new object[] { pId, msg });
+			_frozens.Freeze((Action< int[] , int , string >)_form.SetMsgBox, new object[] { vectorClock, pId, msg });
 		}
 
-		public void GameStarted(string serverPId, List<Client> clients, Game game)
+		public void GameStarted(string serverPId, int myId, List<Client> clients, Game game)
 		{
-			_frozens.Freeze((Action<string, List<Client>, Game>)_form.GameStarted, new object[] { serverPId, clients, game });
+			_frozens.Freeze((Action<string, int, List<Client>, Game>)_form.GameStarted, new object[] { serverPId, myId, clients, game });
 		}
 
 		public void GameUpdate(Game game)

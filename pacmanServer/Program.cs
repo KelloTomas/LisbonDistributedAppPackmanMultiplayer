@@ -327,7 +327,7 @@ namespace pacmanServer
 			_game.Monsters.Add(new Character() { X = 180, Y = 73, Direction = Direction.Left });
 			_game.Monsters.Add(new Character() { X = 221, Y = 273, Direction = Direction.Left });
 
-			ThreadStart ts = new ThreadStart(this.BroadcastGameStart);
+			ThreadStart ts = new ThreadStart(BroadcastGameStart);
 			Thread t = new Thread(ts);
 			t.Start();
 		}
@@ -344,9 +344,10 @@ namespace pacmanServer
 
 		private void BroadcastGameStart()
 		{
+			int clientId = 0;
 			foreach (KeyValuePair<string, IServiceClient> client in _clientsDict)
 			{
-				delays.SendWithDelay(client.Key, (Action<string, List<Client>, Game>)client.Value.GameStarted, new object[] { _pId, _clientsList, _game });
+				delays.SendWithDelay(client.Key, (Action<string, int, List<Client>, Game>)client.Value.GameStarted, new object[] { _pId, clientId++, _clientsList, _game });
 			}
 			_timer.Start();
 		}
