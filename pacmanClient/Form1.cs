@@ -165,9 +165,9 @@ namespace pacmanClient
 					_messageQueue.NewMessage(vectorClock, _messageQueue.GetMyId(), tbMsg.Text);
 					foreach (KeyValuePair<string, IServiceClientWithState> client in _clients)
 					{
-						client.Value.MessageReceive(vectorClock, _messageQueue.GetMyId(), tbMsg.Text);
+						//client.Value.MessageReceive(vectorClock, _messageQueue.GetMyId(), tbMsg.Text);
 						// ToDo Pedro, with delay it is not received
-						//_delays.SendWithDelay(client.Key, (Action<int[], int, string>)client.Value.MessageReceive, new object[] { vectorClock , _pId, tbMsg.Text });
+						_delays.SendWithDelay(client.Key, (Action<int[], int, string>)client.Value.MessageReceive, new object[] { vectorClock , _messageQueue.GetMyId(), tbMsg.Text });
 					}
 					tbChat.Text = _messageQueue.GetAllMessages();
 					tbMsg.Clear();
