@@ -169,7 +169,7 @@ namespace PuppetMaster
 					string srcPID = parts[1];
 					string dstPID = parts[2];
 					if (activators.TryGetValue(srcPID, out program))
-						program.InjectDelay(dstPID, 3000);
+						program.InjectDelay(dstPID, 10000);
 					break;
 				case "LocalState":
 					processPId = parts[1];

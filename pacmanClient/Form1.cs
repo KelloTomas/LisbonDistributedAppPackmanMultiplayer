@@ -48,6 +48,7 @@ namespace pacmanClient
 			InitializeComponent();
 			label2.Visible = false;
 			_pId = args[0];
+			Text = _pId;
 			string myURL = args[1];
 			_serverPId = args[2];
 			string serverURL = args[3];
@@ -161,13 +162,11 @@ namespace pacmanClient
 			{
 				if (e.KeyCode == Keys.Enter)
 				{
-					int[] vectorClock = _messageQueue.IncreaseVectorClock();
+					int[] vectorClock = _messageQueue.GetVectorClock();
 					_messageQueue.NewMessage(vectorClock, _messageQueue.GetMyId(), tbMsg.Text);
 					foreach (KeyValuePair<string, IServiceClientWithState> client in _clients)
 					{
-						//client.Value.MessageReceive(vectorClock, _messageQueue.GetMyId(), tbMsg.Text);
-						// ToDo Pedro, with delay it is not received
-						_delays.SendWithDelay(client.Key, (Action<int[], int, string>)client.Value.MessageReceive, new object[] { vectorClock , _messageQueue.GetMyId(), tbMsg.Text });
+						_delays.SendWithDelay(client.Key, (Action<int[], int, string>)client.Value.MessageReceive, new object[] { vectorClock , _messageQueue.GetMyId(), _pId + ": " + tbMsg.Text });
 					}
 					tbChat.Text = _messageQueue.GetAllMessages();
 					tbMsg.Clear();

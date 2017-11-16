@@ -5,25 +5,25 @@ using System.Linq;
 
 namespace pacmanClient
 {
-	class Message
+	internal class Message
 	{
 		public int[] Clock;
 		public int Id = 0;
 		public string Msg = "";
 	}
+
 	internal class MessageQueue
 	{
-		int[] vectorClock;
-		Collection<Message> messages = new Collection<Message>();
-		Collection<Message> pendingMessages = new Collection<Message>();
+		#region private fields
+		private int[] vectorClock;
+		private Collection<Message> messages = new Collection<Message>();
+		private Collection<Message> pendingMessages = new Collection<Message>();
 		private readonly int MAX_MESSAGES = 10;
 		private int _numberOfClients;
 		private int _myId;
+		#endregion
 
-		internal int GetMyId()
-		{
-			return _myId;
-		}
+		#region constructor...
 		internal MessageQueue(int numberOfClients, int myId)
 		{
 			_myId = myId;
@@ -33,32 +33,57 @@ namespace pacmanClient
 			{
 				vectorClock[i] = 0;
 			}
-			messages.Add(new Message() { Clock = vectorClock});
+			messages.Add(new Message() { Clock = vectorClock });
+		}
+		#endregion
+
+		#region internal methods...
+		internal int GetMyId()
+		{
+			return _myId;
 		}
 
 		internal void NewMessage(int[] clocks, int id, string msg)
 		{
-			lock(this)
+			Message m = new Message() { Clock = clocks, Msg = msg, Id = id };
+			if (IsValidMsg(m))
 			{
-				Message m = new Message() { Clock = clocks, Msg = id + ": " + msg, Id =id };
-				if (IsValidMsg(m))
-				{
-					AddMessage(m);
-				}
-				else
-				{
-					pendingMessages.Add(m);
-				}
+				Console.WriteLine("New MSG");
+				AddMessage(m);
+				CheckPendingMessages();
+			}
+			else
+			{
+				Console.WriteLine("To pending");
+				pendingMessages.Add(m);
 			}
 		}
 
+		internal int[] GetVectorClock()
+		{
+			return vectorClock;
+		}
+
+		internal string GetAllMessages()
+		{
+			string text = "";
+			foreach (Message m in messages)
+			{
+				text += m.Msg + "\r\n";
+			}
+			return text;
+		}
+		#endregion
+
+		#region private methods
 		private void CheckPendingMessages()
 		{
-			foreach(Message m in pendingMessages)
+			foreach (Message m in pendingMessages)
 			{
 				if (IsValidMsg(m))
 				{
 					AddMessage(m);
+					CheckPendingMessages();
 					return;
 				}
 			}
@@ -69,36 +94,35 @@ namespace pacmanClient
 			if (messages.Count > MAX_MESSAGES)
 				messages.RemoveAt(0);
 			messages.Add(m);
-			CheckPendingMessages();
 		}
 
 		private bool IsValidMsg(Message newMessage)
 		{
-			Message lastMsg = messages.Last();
-			for (int i = 0; i < _numberOfClients; i++)
+			lock (this)
 			{
-				if (i == newMessage.Id)
-					continue; // do not control his own msg
-				if (newMessage.Clock[i] > lastMsg.Clock[i])
-					return false;
+				for (int i = 0; i < _numberOfClients; i++)
+				{
+					if (i == _myId)
+						continue; // do not control with my seq number
+					if (i == newMessage.Id)
+					{
+						if (vectorClock[i] + 1 != newMessage.Clock[i]) // order of msg of sender
+						{
+							Console.WriteLine("Sender BAD order detected - " + vectorClock[i] + ":" + newMessage.Clock[i]);
+							return false;
+						}
+						continue;
+					}
+					if (vectorClock[i] < newMessage.Clock[i])
+					{
+						Console.WriteLine("index: " + i + "msg error - " + vectorClock[i] + ":" + newMessage.Clock[i]);
+						return false;
+					}
+				}
+				vectorClock[newMessage.Id]++;
+				return true;
 			}
-			return true;
 		}
-
-		internal int[] IncreaseVectorClock()
-		{
-			vectorClock[_myId]++;
-			return vectorClock;
-		}
-
-		internal string GetAllMessages()
-		{
-			string text = "";
-			foreach(Message m in messages)
-			{
-				text += m.Msg + "\r\n";
-			}
-			return text;
-		}
+		#endregion
 	}
 }

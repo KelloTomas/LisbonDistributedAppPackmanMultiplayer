@@ -1,8 +1,9 @@
-StartServer myServer tcp://localhost:8085/PCSServicesName tcp://localhost:8086/ServerServicesName 5000 2
+StartServer myServer tcp://localhost:8085/PCSServicesName tcp://localhost:8086/ServerServicesName 20000 3
 Wait 1000
-StartClient myClient1 tcp://localhost:8085/PCSServicesName tcp://localhost:8087/ClientServicesName 5000 2 ../../../script/C1.csv
-Wait 1000
-StartClient myClient2 tcp://localhost:8085/PCSServicesName tcp://localhost:8088/ClientServicesName 5000 2 ../../../script/C2.csv
+StartClient myClient1 tcp://localhost:8085/PCSServicesName tcp://localhost:8087/ClientServicesName 20000 2 ../../../script/C1.csv
+StartClient myClient2 tcp://localhost:8085/PCSServicesName tcp://localhost:8088/ClientServicesName 20000 2 ../../../script/C2.csv
+StartClient myClient3 tcp://localhost:8085/PCSServicesName tcp://localhost:8089/ClientServicesName 20000 2 ../../../script/C3.csv
+InjectDelay myClient1 myClient2
 #Wait 5000
 #Crash myServer
 #Wait 5000
