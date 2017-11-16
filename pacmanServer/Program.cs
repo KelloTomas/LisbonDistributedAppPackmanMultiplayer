@@ -90,7 +90,6 @@ namespace pacmanServer
 							player.Value.X = -CharactersSize.Player;
 							player.Value.Y = 0;
 							player.Value.state = State.Dead;
-							delays.SendWithDelay(player.Key, (Action<bool>)_clientsDict[player.Key].GameEnded, new object[] { false });
 						}
 						else
 						{
