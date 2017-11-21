@@ -18,7 +18,7 @@ namespace pacmanClient
 		private int[] vectorClock;
 		private Collection<Message> messages = new Collection<Message>();
 		private Collection<Message> pendingMessages = new Collection<Message>();
-		private readonly int MAX_MESSAGES = 10;
+		private readonly int MAX_MESSAGES = 15;
 		private int _numberOfClients;
 		private int _myId;
 		#endregion
@@ -33,7 +33,10 @@ namespace pacmanClient
 			{
 				vectorClock[i] = 0;
 			}
-			messages.Add(new Message() { Clock = vectorClock });
+			for (int i = 0; i<MAX_MESSAGES;i++)
+			{
+				messages.Add(new Message() { Clock = vectorClock });
+			}
 		}
 		#endregion
 
@@ -91,8 +94,7 @@ namespace pacmanClient
 
 		private void AddMessage(Message m)
 		{
-			if (messages.Count > MAX_MESSAGES)
-				messages.RemoveAt(0);
+			messages.RemoveAt(0);
 			messages.Add(m);
 		}
 

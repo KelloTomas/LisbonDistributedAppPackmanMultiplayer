@@ -63,8 +63,10 @@
 			this.tbChat.Location = new System.Drawing.Point(367, 40);
 			this.tbChat.Multiline = true;
 			this.tbChat.Name = "tbChat";
+			this.tbChat.ScrollBars = System.Windows.Forms.ScrollBars.Horizontal;
 			this.tbChat.Size = new System.Drawing.Size(100, 255);
 			this.tbChat.TabIndex = 144;
+			this.tbChat.WordWrap = false;
 			// 
 			// Form1
 			// 

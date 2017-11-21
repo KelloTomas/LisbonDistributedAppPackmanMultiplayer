@@ -271,9 +271,12 @@ namespace pacmanClient
 			lock (this)
 			{
 				_game = game;
-				UpdatePlayersPosition(game);
-				UpdateMonsterPosition(game);
-				UpdateCoinPosition(game);
+				BeginInvoke(new MethodInvoker(delegate
+				{
+					UpdatePlayersPosition(game);
+					UpdateMonsterPosition(game);
+					UpdateCoinPosition(game);
+				}));
 			}
 		}
 

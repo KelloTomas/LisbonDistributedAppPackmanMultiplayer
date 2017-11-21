@@ -31,6 +31,7 @@ namespace pacmanServer
 		private delegate void UpdateGameDelegate();
 		#endregion
 
+		#region start program...
 		static void Main(string[] args)
 		{
 			new Program().Init(args);
@@ -67,12 +68,91 @@ namespace pacmanServer
 				Console.ReadLine();
 			}
 		}
+		#endregion
+
+		#region RoundRobin program flow...
 		private void Timer_Elapsed(object sender, ElapsedEventArgs e)
 		{
+			_game.RoundId++;
 			Console.WriteLine("Round: " + _game.RoundId + " Updating...");
+			UpdateGame();
+			SendUpdatedGameToClients(_game);
+		}
+		#endregion
+
+		#region Server service...
+		public void SetMove(string pId, int roundId, Direction direction)
+		{
+			_game.Players[pId].Direction = direction;
+		}
+
+		public void RegisterPlayer(string pId, string clientURL)
+		{
+			if (_numPlayers == _maxNumPlayers)
+			{
+				Console.WriteLine("SERVER FULL and playeer " + pId + " with url " + clientURL + " try to connect");
+			}
 			lock (this)
 			{
-				_game.RoundId++;
+				Console.WriteLine("Playeer " + pId + " with url " + clientURL + " is connected");
+
+				_game.Players.Add(pId, new CharacterWithScore() { X = 8, Y = 40 * (_game.Players.Count + 1) });
+
+				/* get service */
+				_clientsList.Add(new Client(pId, clientURL));
+				_clientsDict.Add(pId, (IServiceClient)Activator.GetObject(
+					typeof(IServiceClient),
+					clientURL));
+				if (++_numPlayers == _maxNumPlayers)
+				{
+					GameStart();
+				}
+				else
+				{
+					Console.WriteLine("Waiting for " + (_maxNumPlayers - _numPlayers) + " more players");
+				}
+			}
+		}
+		#endregion
+
+		#region Control service...
+		public void Crash()
+		{
+			Environment.Exit(0);
+		}
+
+		public void InjectDelay(string pId, int mSecDelay)
+		{
+			delays.AddDelay(pId, mSecDelay);
+		}
+
+		public void Freez()
+		{
+			_frozens.Freez();
+		}
+		public void UnFreez()
+		{
+			_frozens.UnFreez();
+		}
+		#endregion
+
+		#region Log local and global state...
+		internal void GlobalStatus()
+		{
+			LogLocalGlobal.GlobalStatus(_game);
+		}
+
+		internal string LocalState()
+		{
+			return LogLocalGlobal.LocalState(_game, _pId);
+		}
+		#endregion
+
+		#region private methods...
+		private void UpdateGame()
+		{
+			lock (this)
+			{
 				ICollection<CharacterWithScore> x = _game.Players.Values;
 				UpdateCharactersPosition(_game.Players.Values);
 				UpdateCharactersPosition(_game.Monsters);
@@ -129,13 +209,7 @@ namespace pacmanServer
 					}
 				}
 			}
-			SendUpdatedGameToClients(_game);
-			/*foreach (var player in _game.Players.Values)
-			{
-				player.Direction = Direction.No;
-			}*/
 		}
-
 
 		private bool CheckIntersectionWithMonster(CharacterWithScore player)
 		{
@@ -169,6 +243,7 @@ namespace pacmanServer
 			}
 			return false;
 		}
+
 		private bool CheckIntersectionWithObsticle(Position character, int characterSize)
 		{
 			foreach (Obsticle obsticle in _game.Obsticles)
@@ -180,6 +255,7 @@ namespace pacmanServer
 			}
 			return false;
 		}
+
 		private bool CheckIntersectionWithObsticleOrBorder(Position character, int characterSize)
 		{
 			foreach (Obsticle obsticle in _game.Obsticles)
@@ -255,6 +331,7 @@ namespace pacmanServer
 			b2.Height = p2Size;
 			return CheckIntersection(p1, p1Size, b2);
 		}
+
 		private bool CheckIntersection(Position character, int characterSize, Obsticle obsticle)
 		{
 			b2.X = obsticle.Corner1.X;
@@ -263,6 +340,7 @@ namespace pacmanServer
 			b2.Height = obsticle.Corner2.Y;
 			return CheckIntersection(character, characterSize, b2);
 		}
+
 		private bool CheckIntersection(Position character, int characterSize, Rectangle obsticle)
 		{
 			b1.X = character.X;
@@ -271,34 +349,6 @@ namespace pacmanServer
 			b1.Height = characterSize;
 			bool intersec = b1.IntersectsWith(b2);
 			return intersec;
-		}
-
-		public void RegisterPlayer(string pId, string clientURL)
-		{
-			if (_numPlayers == _maxNumPlayers)
-			{
-				Console.WriteLine("SERVER FULL and playeer " + pId + " with url " + clientURL + " try to connect");
-			}
-			lock (this)
-			{
-				Console.WriteLine("Playeer " + pId + " with url " + clientURL + " is connected");
-
-				_game.Players.Add(pId, new CharacterWithScore() { X = 8, Y = 40 * (_game.Players.Count + 1) });
-
-				/* get service */
-				_clientsList.Add(new Client(pId, clientURL));
-				_clientsDict.Add(pId, (IServiceClient)Activator.GetObject(
-					typeof(IServiceClient),
-					clientURL));
-				if (++_numPlayers == _maxNumPlayers)
-				{
-					GameStart();
-				}
-				else
-				{
-					Console.WriteLine("Waiting for " + (_maxNumPlayers - _numPlayers) + " more players");
-				}
-			}
 		}
 
 		private void GameStart()
@@ -350,43 +400,6 @@ namespace pacmanServer
 				delays.SendWithDelay(client.Key, (Action<string, int, List<Client>, Game>)client.Value.GameStarted, new object[] { _pId, clientId++, _clientsList, _game });
 			}
 			_timer.Start();
-		}
-
-		public void SetMove(string pId, int roundId, Direction direction)
-		{
-			_game.Players[pId].Direction = direction;
-		}
-
-		#region Control service...
-		public void Crash()
-		{
-			Environment.Exit(0);
-		}
-
-		public void InjectDelay(string pId, int mSecDelay)
-		{
-			delays.AddDelay(pId, mSecDelay);
-		}
-
-		public void Freez()
-		{
-			_frozens.Freez();
-		}
-		public void UnFreez()
-		{
-			_frozens.UnFreez();
-		}
-#endregion
-
-		#region Log local and global state...
-		internal void GlobalStatus()
-		{
-			LogLocalGlobal.GlobalStatus(_game);
-		}
-
-		internal string LocalState()
-		{
-			return LogLocalGlobal.LocalState(_game, _pId);
 		}
 		#endregion
 	}
