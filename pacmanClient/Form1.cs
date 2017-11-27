@@ -55,8 +55,15 @@ namespace pacmanClient
 			int mSec = int.Parse(args[4]);
 			if (args.Count() == 6)
 			{
-				reader = new StreamReader(args[5]);
-				ReadNextInstruction(reader);
+                try
+                {
+				    reader = new StreamReader(args[5]);
+				    ReadNextInstruction(reader);
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Cant read file, check path: " + args[5]);
+                }
 			}
 			_timer = new System.Timers.Timer() { Interval = mSec, AutoReset = true, Enabled = false };
 			_timer.Elapsed += Timer_Tick;

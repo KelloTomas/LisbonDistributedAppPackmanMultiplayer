@@ -306,7 +306,8 @@ namespace pacmanServer
 			{
 				lock (this)
 				{
-					if (_game.Players.TryGetValue(client.Key, out var player))
+                    CharacterWithScore player;
+					if (_game.Players.TryGetValue(client.Key, out player))
 					{
 						player.X = -CharactersSize.Player;
 						player.Y = 0;
@@ -374,7 +375,8 @@ namespace pacmanServer
 							break;
 						}
 					}
-					if (_game.Players.TryGetValue((string)obj[0], out var player))
+                    CharacterWithScore player;
+					if (_game.Players.TryGetValue((string)obj[0], out player))
 					{
 						player.X = 8;
 						player.Y = 40;
