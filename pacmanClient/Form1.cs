@@ -76,7 +76,7 @@ namespace pacmanClient
 				serverURL);
 			try
 			{
-				_delays.SendWithDelay(_serverPId, (Action<string, string>)server.RegisterPlayer, new object[] { _pId, myURL });
+				_delays.SendWithDelay(_serverPId, (Action<string, string>) server.RegisterPlayer, new object[] { _pId, myURL });
 			}
 			catch
 			{
@@ -194,6 +194,7 @@ namespace pacmanClient
 					}
 					foreach (var player in game.Players)
 					{
+						Console.WriteLine("Player "+ player.Key);
 						players.Add(DrawNewCharacterToGame(Controls, Properties.Resources.Right, CharactersSize.Player));
 					}
 					foreach (var monster in game.Monsters)
@@ -361,7 +362,22 @@ namespace pacmanClient
 				tbChat.Text = _messageQueue.GetAllMessages();
 			}));
 		}
-
+		internal void ClientDisconnect(string pid)
+		{
+			lock (_clients)
+			{
+				_clients.Remove(pid);
+			}
+		}
+		internal void ClientConnect(string pid, string URL)
+		{
+			lock (_clients)
+			{
+				_clients.Add(pid, (IServiceClientWithState)Activator.GetObject(
+				typeof(IServiceClient),
+				URL));
+			}
+		}
 		internal void GameEnded(bool win)
 		{
 			_timer.Stop();

@@ -24,6 +24,14 @@ namespace pacmanClient
 		#endregion
 
 		#region IServiceClient
+		public void ClientDisconnect(string pid)
+		{
+			_frozens.Freeze((Action<string>)_form.ClientDisconnect, new object[] { pid });
+		}
+		public void ClientConnect(string pid, string URL)
+		{
+			_frozens.Freeze((Action<string, string>)_form.ClientConnect, new object[] { pid , URL});
+		}
 		public void MessageReceive(int[] vectorClock, int pId, string msg)
 		{
 			_frozens.Freeze((Action< int[] , int , string >)_form.MessageReceive, new object[] { vectorClock, pId, msg });

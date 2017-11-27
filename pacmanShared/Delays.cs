@@ -19,10 +19,11 @@ namespace CommonTypes
 				_delays[pId] = length;
 		}
 
-		public void SendWithDelay(string pId, Delegate v, params object[] parameters)
+		public IAsyncResult SendWithDelay(string pId, Delegate v, params object[] parameters)
 		{
 			send = SendDelay;
-			send.BeginInvoke(pId, v, parameters, null, null);
+			IAsyncResult asyncResult = send.BeginInvoke(pId, v, parameters, null, null);
+			return asyncResult;
 		}
 
 		public void SendDelay(string pId, Delegate v, params object[] parameters)
@@ -34,6 +35,7 @@ namespace CommonTypes
 				{
 					p[i] = DeepClone(parameters[i]);
 				}
+				Console.WriteLine(_delays[pId]);
 				Thread.Sleep(_delays[pId]);
 				v.DynamicInvoke(p);
 			}
