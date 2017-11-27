@@ -27,6 +27,7 @@ namespace pacmanServer
 		private TcpChannel channel;
 		private const int _speed = 5;
 		private System.Timers.Timer _timer;
+		private bool full = false;
 		private ServiceServer serviceServer;
 		private List<Client> _clientsList = new List<Client>();
 		private Dictionary<string, IServiceClient> _clientsDict = new Dictionary<string, IServiceClient>();
@@ -95,38 +96,59 @@ namespace pacmanServer
 
 		public void RegisterPlayer(string pId, string clientURL)
 		{
-			if (_numPlayers == _maxNumPlayers)
+			if ((_numPlayers < _maxNumPlayers )&& (full == true))
 			{
 				lock (this)
 				{
 					lock (client_queue.SyncRoot)
-				{
-					Console.WriteLine("SERVER FULL and playeer " + pId + " with url " + clientURL + " try to connect");
-					object[] toEnqueue = {pId, clientURL};
-					client_queue.Enqueue(toEnqueue);
-				}
+					{
+						Console.WriteLine("SERVER1 FULL and playeer " + pId + " with url " + clientURL + " try to connect");
+						object[] toEnqueue = { pId, clientURL };
+						client_queue.Enqueue(toEnqueue);
+					}
+					Monitor.Pulse(this);
 				}
 			}
 			else
 			{
-				lock (this)
+				if (_numPlayers == _maxNumPlayers)
 				{
-					Console.WriteLine("Playeer " + pId + " with url " + clientURL + " is connected");
-
-					_game.Players.Add(pId, new CharacterWithScore() { X = 8, Y = 40 * (_game.Players.Count + 1) });
-
-					/* get service */
-					_clientsList.Add(new Client(pId, clientURL));
-					_clientsDict.Add(pId, (IServiceClient)Activator.GetObject(
-						typeof(IServiceClient),
-						clientURL));
-					if (++_numPlayers == _maxNumPlayers)
+					lock (this)
 					{
-						GameStart();
+						lock (client_queue.SyncRoot)
+						{
+							Console.WriteLine("SERVER2 FULL and playeer " + pId + " with url " + clientURL + " try to connect");
+							object[] toEnqueue = { pId, clientURL };
+							client_queue.Enqueue(toEnqueue);
+						}
 					}
-					else
+				}
+				else
+				{
+					lock (this)
 					{
-						Console.WriteLine("Waiting for " + (_maxNumPlayers - _numPlayers) + " more players");
+						Console.WriteLine("Playeer " + pId + " with url " + clientURL + " is connected");
+
+						_game.Players.Add(pId, new CharacterWithScore() { X = 8, Y = 40 * (_game.Players.Count + 1) });
+
+						/* get service */
+						_clientsList.Add(new Client(pId, clientURL));
+						_clientsDict.Add(pId, (IServiceClient)Activator.GetObject(
+							typeof(IServiceClient),
+							clientURL));
+						if (++_numPlayers == _maxNumPlayers)
+						{
+							GameStart();
+						}
+						else
+						{
+							Console.WriteLine("Waiting for " + (_maxNumPlayers - _numPlayers) + " more players");
+						}
+						if (_numPlayers == _maxNumPlayers)
+						{
+							Console.WriteLine("SERVER FULL!");
+							full = true;
+						}
 					}
 				}
 			}
@@ -305,9 +327,10 @@ namespace pacmanServer
 							}
 						}
 						clientId--;
-
+						_numPlayers--;
 						BroadcastClientDisconnect(client.Key);
-						Monitor.Pulse(this);
+						if(client_queue.Count > 0)
+							Monitor.Pulse(this);
 						Console.WriteLine("PULSEEEEEE");
 					}
 				}
@@ -319,6 +342,7 @@ namespace pacmanServer
 			{
 				while (true)
 				{
+					Console.WriteLine("Waiting....");
 					Monitor.Wait(this);
 					Console.WriteLine("CONNECTING NEW PLAYER....");
 					NewPlayerConnect();
@@ -327,38 +351,43 @@ namespace pacmanServer
 		}
 		private void NewPlayerConnect()
 		{
-			object[] obj;
+			object[] obj = null;
 			lock (client_queue.SyncRoot)
 			{
-				obj = (object[])client_queue.Dequeue();
+				if(client_queue.Count > 0)
+					obj = (object[])client_queue.Dequeue();
 			}
 			lock (this)
 			{
-				Console.WriteLine((string)obj[0] + "   ,         " + (string)obj[1]);
-				_clientsList.Add(new Client((string)obj[0], (string)obj[1]));
-				IServiceClient service = (IServiceClient)Activator.GetObject(typeof(IServiceClient), (string)obj[1]);
-				_clientsDict.Add((string)obj[0], service);
-				foreach (var client in _game.Players)
+				if (obj != null)
 				{
-					if (client.Value.state == State.Disconnected)
+					Console.WriteLine((string)obj[0] + "   ,         " + (string)obj[1]);
+					_clientsList.Add(new Client((string)obj[0], (string)obj[1]));
+					IServiceClient service = (IServiceClient)Activator.GetObject(typeof(IServiceClient), (string)obj[1]);
+					_clientsDict.Add((string)obj[0], service);
+					foreach (var client in _game.Players)
 					{
-						_game.Players.Remove(client.Key);
-						_game.Players.Add((string) obj[0], new CharacterWithScore());
-						break;
+						if (client.Value.state == State.Disconnected)
+						{
+							_game.Players.Remove(client.Key);
+							_game.Players.Add((string)obj[0], new CharacterWithScore());
+							break;
+						}
+					}
+					if (_game.Players.TryGetValue((string)obj[0], out var player))
+					{
+						player.X = 8;
+						player.Y = 40;
+						player.state = State.Playing;
+						_numPlayers++;
+						delays.SendWithDelay((string)obj[0], (Action<string, int, List<Client>, Game>)service.GameStarted, new object[] { _pId, clientId++, _clientsList, _game });
+						BroadcastClientConnect((string)obj[0], (string)obj[1]);
+					}
+					else
+					{
+						Console.WriteLine("Someone took your spot while atempting to connect");
 					}
 				}
-				if (_game.Players.TryGetValue((string)obj[0], out var player))
-				{
-					player.X = 8;
-					player.Y = 40;
-					player.state = State.Playing;
-					delays.SendWithDelay((string)obj[0], (Action<string, int, List<Client>, Game>)service.GameStarted, new object[] { _pId, clientId++, _clientsList, _game });
-					BroadcastClientConnect((string)obj[0], (string)obj[1]);
-				}else
-				{
-					Console.WriteLine("Someone took your spot while atempting to connect");
-				}
-
 			}
 		}
 		private bool CheckIntersectionWithCoins(CharacterWithScore player)
