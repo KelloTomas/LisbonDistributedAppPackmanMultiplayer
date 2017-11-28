@@ -10,6 +10,8 @@ using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
 using System.Threading;
 using System.Timers;
+using System.Diagnostics;
+using System.IO;
 
 namespace pacmanServer
 {
@@ -29,22 +31,28 @@ namespace pacmanServer
 		private System.Timers.Timer _timer;
 		private bool full = false;
 		private ServiceServer serviceServer;
+		private Rectangle b1 = new Rectangle();
+		private Rectangle b2 = new Rectangle();
+		private int clientId;
+		private bool _secondary = false;
+		private object[] _last = null;
 		private List<Client> _clientsList = new List<Client>();
 		private Dictionary<string, IServiceClient> _clientsDict = new Dictionary<string, IServiceClient>();
 		private delegate void UpdateGameDelegate(KeyValuePair<string, IServiceClient> client, Game game);
 		UpdateGameDelegate asyncGameUpdate;
 		private delegate void WaitEnqueuedClientsDelegate();
 		WaitEnqueuedClientsDelegate waitClients;
+		private delegate object[] WaitPrimaryServerFailDelegate();
+		WaitPrimaryServerFailDelegate waitFail;
+		IServiceServer _primary_server = null;
 		#endregion
 		#region start program...
 		static void Main(string[] args)
 		{
 			new Program().Init(args);
 		}
-
 		void Init(string[] args)
 		{
-			waitClients = WaitEnqueuedClients;
 			Board = new Obsticle();
 			Board.Corner2.X = 320;
 			Board.Corner2.Y = 280;
@@ -55,22 +63,79 @@ namespace pacmanServer
 			string myURL = args[1];
 			int mSec = int.Parse(args[2]);
 			_maxNumPlayers = int.Parse(args[3]);
+
+			if (args.Length == 5 && args[4].Equals("secondary"))
+			{
+				_secondary = true;
+				waitFail = GetGamePrimaryServer;
+				_primary_server = (IServiceServer)Activator.GetObject(typeof(IServiceServer), myURL);
+				_timer = new System.Timers.Timer() { AutoReset = true, Enabled = false, Interval = 3000 };
+				_timer.Elapsed += Timer_Elapsed_Secondary;
+				_timer.Start();
+				lock (this)
+				{
+					Console.WriteLine("Secondary Server Mode : Waiting for primary server to fail...");
+					Monitor.Wait(this);
+					Console.WriteLine("_last size  = "+ _last.Length);
+					_game =(Game) _last[0];
+					_clientsDict = (Dictionary<string, IServiceClient>)_last[1];
+					_clientsList = (List<Client>)_last[2];
+					/*_frozens = (Frozens )_last[3];
+					delays = (Delays)_last[4];*/
+					// do this to unregister the channel
+					IChannel[] regChannels = ChannelServices.RegisteredChannels;
+					foreach(IChannel ch in regChannels)
+					{
+						//Console.WriteLine("CHANNEL : " + ch.ChannelName);
+						if (ch.ChannelName.Equals("tcp"))
+						{
+							ChannelServices.UnregisterChannel(ch);
+						}
+					}
+
+					//channel = new TcpChannel(int.Parse(Shared.Shared.ParseUrl(URLparts.Port, myURL)));
+					//ChannelServices.UnregisterChannel(channel);
+
+				}
+				_timer.Stop();
+				_timer.Close();
+
+			}
+			waitClients = WaitEnqueuedClients;
 			_timer = new System.Timers.Timer() { AutoReset = true, Enabled = false, Interval = mSec };
 			_timer.Elapsed += Timer_Elapsed;
-
+			if(_secondary)
+			{
+				Console.WriteLine("Starting...");
+				_timer.Start();
+				_secondary = false;
+			}
 			waitClients.BeginInvoke(null, null);
 
 			lock (this)
 			{
 				/* set channel */
-				channel = new TcpChannel(int.Parse(Shared.Shared.ParseUrl(URLparts.Port, myURL)));
-				ChannelServices.RegisterChannel(channel, false);
+				try
+				{
+					channel = new TcpChannel(int.Parse(Shared.Shared.ParseUrl(URLparts.Port, myURL)));
+					ChannelServices.RegisterChannel(channel, false);
+				}
+				catch
+				{
+					Console.WriteLine("CATCH!!!!");
+					
+					//ChannelServices.UnregisterChannel(channel);
+				}
 				/*set service */
 				serviceServer = new ServiceServer(this, _frozens);
 				string link = Shared.Shared.ParseUrl(URLparts.Link, myURL);
 				Console.WriteLine("Starting server on " + myURL + ", link: " + link);
 				RemotingServices.Marshal(serviceServer, link);
 			}
+			string programArguments = _pId + " " + myURL + " " + mSec + " " + _maxNumPlayers + " secondary";
+			string ExeFileNameServer = "pacmanServer.exe";
+			Process.Start(Path.Combine("..\\..\\..\\pacmanServer\\bin\\Debug", ExeFileNameServer),
+												programArguments);
 			while (true)
 			{
 				Console.ReadLine();
@@ -81,17 +146,44 @@ namespace pacmanServer
 		#region RoundRobin program flow...
 		private void Timer_Elapsed(object sender, ElapsedEventArgs e)
 		{
+			//Console.WriteLine("Flora du skrata du");
 			_game.RoundId++;
 			Console.WriteLine("Round: " + _game.RoundId + " Updating...");
 			UpdateGame();
 			SendUpdatedGameToClients(_game);
 		}
+		private void Timer_Elapsed_Secondary(object sender, ElapsedEventArgs e)
+		{
+			if (_secondary)
+			{
+				Console.Write("Response ");
+				IAsyncResult asyncResult = waitFail.BeginInvoke(null, null);
+				if (!asyncResult.AsyncWaitHandle.WaitOne(2000)) //timeout replicate new server
+				{
+					lock (this)
+					{
+						Monitor.PulseAll(this);
+					}
+
+				}
+				else
+				{
+					_last = waitFail.EndInvoke(asyncResult);					
+				}
+			}
+		}
 		#endregion
 
 		#region Server service...
+
+		public object[] ImAlive()
+		{
+			return new object[] { _game, _clientsDict, _clientsList/*, _frozens, delays*/};
+		}
 		public void SetMove(string pId, int roundId, Direction direction)
 		{
 			_game.Players[pId].Direction = direction;
+			Console.WriteLine("Player " + pId + " : " + direction);
 		}
 
 		public void RegisterPlayer(string pId, string clientURL)
@@ -158,7 +250,8 @@ namespace pacmanServer
 		#region Control service...
 		public void Crash()
 		{
-			Environment.Exit(0);
+			//ChannelServices.UnregisterChannel(channel);
+			Environment.Exit(1);
 		}
 
 		public void InjectDelay(string pId, int mSecDelay)
@@ -189,6 +282,10 @@ namespace pacmanServer
 		#endregion
 
 		#region private methods...
+		private object[] GetGamePrimaryServer()
+		{
+			return _primary_server.ImAlive();
+		}
 		private void UpdateGame()
 		{
 			lock (this)
@@ -483,10 +580,6 @@ namespace pacmanServer
 			else
 				return false;
 		}
-
-		private Rectangle b1 = new Rectangle();
-		private Rectangle b2 = new Rectangle();
-		private int clientId;
 
 		private bool CheckIntersection(Position p1, int p1Size, Position p2, int p2Size)
 		{

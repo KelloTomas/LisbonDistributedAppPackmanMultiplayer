@@ -8,5 +8,8 @@
 		void UnFreez();
 		string LocalState(int roundId);
 		void Crash();
+		//Game ImAlive();
+		object[] ImAlive();
+
 	}
 }

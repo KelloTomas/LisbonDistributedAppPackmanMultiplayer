@@ -29,6 +29,11 @@ namespace pacmanServer
 		{
 			_frozens.Freeze((Action<string, int, Direction>)_program.SetMove, pId, roundId, direction);
 		}
+		public object[] ImAlive()
+		{
+			//_frozens.Freeze((Action)_program.ImAlive, new object[] { });
+			return _program.ImAlive();
+		}
 		#endregion
 
 		#region IController

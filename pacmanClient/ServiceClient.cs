@@ -52,6 +52,9 @@ namespace pacmanClient
 			_form.GameEnded(win);
 			_frozens.Freeze((Action<bool>)_form.GameEnded, new object[] { win });
 		}
+		public object[] ImAlive() {
+			return null;
+		}
 		#endregion
 
 		#region IController

@@ -134,7 +134,10 @@ namespace PuppetMaster
 					processPId = parts[1];
 					if (activators.TryGetValue(processPId, out program))
 					{
-						program.Crash();
+						//program.Crash();
+						new Task(program.Crash).Start();
+						activators.Remove(processPId);
+						urls.Remove(processPId);
 					}
 					break;
 				case "Freeze":
@@ -161,6 +164,10 @@ namespace PuppetMaster
 						Console.WriteLine(program.LocalState(round));
 					break;
 				case "Wait":
+					timer.Stop();
+					Thread.Sleep(int.Parse(parts[1]));
+					timer.Start();
+					/*
 					if (timer.Enabled)
 					{
 						moreWait += int.Parse(parts[1]);
@@ -169,7 +176,7 @@ namespace PuppetMaster
 					{
 						timer.Interval = int.Parse(parts[1]);
 						timer.Start();
-					}
+					}*/
 					return false;
 				default:
 					Console.WriteLine("Unknow command " + command);
