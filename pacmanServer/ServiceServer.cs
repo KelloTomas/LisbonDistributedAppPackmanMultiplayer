@@ -8,11 +8,11 @@ namespace pacmanServer
 	{
 		#region private fields...
 		private Program _program;
-		private Frozens _frozens;
+		private Delays _frozens;
 		#endregion
 
 		#region constructor...
-		internal ServiceServer(Program program, Frozens frozens)
+		internal ServiceServer(Program program, Delays frozens)
 		{
 			_program = program;
 			_frozens = frozens;

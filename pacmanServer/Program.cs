@@ -20,7 +20,7 @@ namespace pacmanServer
         #region private fields...
         private Queue client_queue = new Queue();
         private Delays delays = new Delays();
-        private Frozens _frozens = new Frozens();
+        //private Frozens _frozens = new Frozens();
         private Obsticle Board;
         private string _pId;
         private int _maxNumPlayers;
@@ -127,7 +127,7 @@ namespace pacmanServer
                     //ChannelServices.UnregisterChannel(channel);
                 }
                 /*set service */
-                serviceServer = new ServiceServer(this, _frozens);
+                serviceServer = new ServiceServer(this, delays);
                 string link = Shared.Shared.ParseUrl(URLparts.Link, myURL);
                 Console.WriteLine("Starting server on " + myURL + ", link: " + link);
                 RemotingServices.Marshal(serviceServer, link);
@@ -268,11 +268,11 @@ namespace pacmanServer
 
         public void Freez()
         {
-            _frozens.Freez();
+            delays.Freez();
         }
         public void UnFreez()
         {
-            _frozens.UnFreez();
+            delays.UnFreez();
         }
         #endregion
 
@@ -392,7 +392,8 @@ namespace pacmanServer
             asyncGameUpdate = AsyncGameUpdate;
             foreach (var client in _clientsDict)
             {
-                AsyncGameUpdate(client, game); // try to use begin invoke
+				asyncGameUpdate.BeginInvoke(client, game, null, null);
+				//AsyncGameUpdate(client, game); // try to use begin invoke
             }
         }
         private void BroadcastClientDisconnect(string pid)

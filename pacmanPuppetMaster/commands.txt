@@ -1,9 +1,7 @@
-StartServer myServer tcp://localhost:8085/PCS tcp://localhost:8086/ServerServicesName 200 3
+StartServer myServer tcp://localhost:8085/PCS tcp://localhost:8086/ServerServicesName 200 2
 Wait 1000
-StartClient myClient1 tcp://localhost:8085/PCS tcp://localhost:8087/ClientServicesName 200 3 ../../../script/C1.csv
-StartClient myClient2 tcp://localhost:8085/PCS tcp://localhost:8088/ClientServicesName 200 3
-StartClient myClient3 tcp://localhost:8085/PCS tcp://localhost:8089/ClientServicesName 200 3
-88StartClient myClient4 tcp://localhost:8085/PCS tcp://localhost:8090/ClientServicesName 200 3
-Wait 20000
-Crash myClient1
+StartClient myClient1 tcp://localhost:8085/PCS tcp://localhost:8087/ClientServicesName 200 2../../../script/C1.csv
+StartClient myClient2 tcp://localhost:8085/PCS tcp://localhost:8088/ClientServicesName 200 2
+StartClient myClient4 tcp://localhost:8085/PCS tcp://localhost:8090/ClientServicesName 200 2
+#Crash myClient1
 #LocalState myClient1 50

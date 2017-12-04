@@ -9,13 +9,13 @@ namespace pacmanClient
 	{
 		#region private fields...
 		private Form1 _form;
-		private Frozens _frozens;
+		private Delays _frozens;
 		public State State { get; set; }
 
 		#endregion
 
 		#region Constructor...
-		internal ServiceClientWithState(Form1 form, Frozens frozens)
+		internal ServiceClientWithState(Form1 form, Delays frozens)
 		{
 			_form = form;
 			_frozens = frozens;

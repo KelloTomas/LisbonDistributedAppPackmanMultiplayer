@@ -20,7 +20,7 @@ namespace pacmanClient
 	{
 		#region private...
 		private Delays _delays = new Delays();
-		private Frozens _frozens = new Frozens();
+		//private Frozens _frozens = new Frozens();
 		private StreamReader reader = null;
 		private string _serverPId;
 		private Tuple<int, Direction> commandFromFile = new Tuple<int, Direction>(-1, Direction.NO);
@@ -76,7 +76,7 @@ namespace pacmanClient
 			ChannelServices.RegisterChannel(channel, false);
 
 			/*set service */
-			serviceClient = new ServiceClientWithState(this, _frozens);
+			serviceClient = new ServiceClientWithState(this, _delays);
 			RemotingServices.Marshal(serviceClient, Shared.Shared.ParseUrl(URLparts.Link, myURL));
 
 			/* get service */
@@ -433,12 +433,12 @@ namespace pacmanClient
 
 		internal void Freez()
 		{
-			_frozens.Freez();
+			_delays.Freez();
 		}
 
 		internal void UnFreez()
 		{
-			_frozens.UnFreez();
+			_delays.UnFreez();
 		}
 		#endregion
 
