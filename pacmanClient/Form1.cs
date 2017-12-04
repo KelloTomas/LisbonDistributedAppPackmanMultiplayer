@@ -41,7 +41,7 @@ namespace pacmanClient
 
 		private Dictionary<string, IServiceClientWithState> _clients = new Dictionary<string, IServiceClientWithState>();
 		private int _score = 0;
-		private int _getStateOfRound = -1;
+		private Game _GameToSend = null;
 		#endregion
 
 		#region constructor...
@@ -277,14 +277,20 @@ namespace pacmanClient
 
 		public void GameUpdate(Game game)
 		{
-			if (game.RoundId == _getStateOfRound)
+			lock (this)
 			{
-				Console.WriteLine("Send state. I am in round: " + _getStateOfRound);
-				Monitor.Pulse(this);
-				Thread.Sleep(100);
-				_getStateOfRound = -1;
+				if (_GameToSend != null)
+				{
+					if (game.RoundId == _GameToSend.RoundId)
+					{
+						_GameToSend = game;
+						Console.WriteLine("Send state: I am in round: " + game.RoundId);
+						Monitor.Pulse(this);
+						Monitor.PulseAll(this);
+						Monitor.Wait(this);
+					}
+				}
 			}
-			//Console.WriteLine("Updating game, round: " + game.RoundId);
 			lock (this)
 			{
 				_game = game;
@@ -438,10 +444,10 @@ namespace pacmanClient
 		{
 			lock (this)
 			{
-				if (_getStateOfRound != -1)
+				if (_GameToSend != null)
 				{
 					Console.WriteLine("already asked for state");
-					return "You already asked for Local state of " + _getStateOfRound + " round";
+					return "You already asked for Local state of " + _GameToSend.RoundId + " round";
 				}
 				if (roundId == _game.RoundId)
 				{
@@ -450,11 +456,13 @@ namespace pacmanClient
 				}
 				if (roundId > _game.RoundId)
 				{
-					_getStateOfRound = roundId;
-					Console.WriteLine("going to wait for state");
+					_GameToSend = new Game();
+					_GameToSend.RoundId = roundId;
+					Console.WriteLine("going to wait for state: " + _GameToSend.RoundId);
 					Monitor.Wait(this);
 					Console.WriteLine("Woke up");
-					return LogLocalGlobal.LocalState(_game, _pId);
+					Monitor.PulseAll(this);
+					return LogLocalGlobal.LocalState(_GameToSend, _pId);
 				}
 				string r = "Too late, you want game from round " + roundId + " and I am already in round: " + _game.RoundId;
 				Console.WriteLine(r);
