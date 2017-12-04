@@ -9,26 +9,15 @@ namespace CommonTypes
 {
 	public static class LogLocalGlobal
 	{
-		public static void GlobalStatus(Game game)
-		{
-			Console.WriteLine("Global Status:");
-			if (game == null)
-				Console.WriteLine("Game not started");
-			foreach (var client in game.Players)
-			{
-				Console.WriteLine("client: " + client.Key + " is in state " + (client.Value.state == State.Disconnected ? "offline" : "online"));
-			}
-		}
-
 		public static string LocalState(Game game, string pId)
 		{
-			string output = "";
 			if (game == null)
 			{
-				output = "Game not started";
+				return "Game not started";
 			}
 			else
 			{
+				string output = "State in round: " + game.RoundId + "\n\r";
 				foreach (var monster in game.Monsters)
 				{
 					output += "M, " + monster.X + ", " + monster.Y + "\n\r";
@@ -37,11 +26,12 @@ namespace CommonTypes
 				{
 					output += player.Key + ", " + player.Value.state + ", " + player.Value.X + ", " + player.Value.Y + "\n\r";
 				}
+				foreach (var coin in game.Coins)
+				{
+					output += "C, " + coin.X + ", " + coin.Y + "\n\r";
+				}
+				return output;
 			}
-			StreamWriter sw = new StreamWriter("LocalState-" + pId + "-" + game.RoundId);
-			sw.Write(output);
-			sw.Close();
-			return output;
 		}
 	}
 }

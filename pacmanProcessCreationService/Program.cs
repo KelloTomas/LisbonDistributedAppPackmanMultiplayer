@@ -25,7 +25,6 @@ namespace ProcessCreationService
 		{
 			p = new Program();
 			p.Init(args);
-			Console.ReadLine();
 		}
 
 		private void Init(string[] args)

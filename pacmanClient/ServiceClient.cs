@@ -86,7 +86,7 @@ namespace pacmanClient
 
 		public string LocalState(int roundId)
 		{
-			return _form.LocalState();
+			return _form.LocalState(roundId);
 		}
 		#endregion
 	}

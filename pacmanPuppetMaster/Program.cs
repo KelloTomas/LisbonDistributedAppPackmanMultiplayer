@@ -15,11 +15,9 @@ namespace PuppetMaster
 	{
 		#region private fields...
 		private StreamReader reader = null;
-		private System.Timers.Timer timer;
 		private Dictionary<string, string> urls = new Dictionary<string, string>();
 		private Dictionary<string, ICommands> activators = new Dictionary<string, ICommands>();
 		private Dictionary<string, IServicePCS> PCSDic = new Dictionary<string, IServicePCS>();
-		private int moreWait = 0;
 		private string serverURL = "";
 		private string serverPId;
 		#endregion
@@ -34,11 +32,6 @@ namespace PuppetMaster
 		{
 			TcpChannel channel = new TcpChannel();
 			ChannelServices.RegisterChannel(channel, false);
-			timer = new System.Timers.Timer
-			{
-				AutoReset = false
-			};
-			timer.Elapsed += Timer_Elapsed;
 			if (args.Count() >= 1)
 			{
 				Console.WriteLine("Reading file: " + args[0]);
@@ -57,18 +50,6 @@ namespace PuppetMaster
 		#endregion
 
 		#region private methods...
-		private void Timer_Elapsed(object sender, ElapsedEventArgs e)
-		{
-			if (moreWait > 0)
-			{
-				timer.Interval = moreWait;
-				moreWait = 0;
-				timer.Start();
-				return;
-			}
-			ReadInstFromFile();
-		}
-
 		private void ReadInstFromFile()
 		{
 			while (ParseCommand(reader.ReadLine())) ;
@@ -76,7 +57,6 @@ namespace PuppetMaster
 
 		private bool ParseCommand(string command)
 		{
-			ICommands program;
 			string processPId;
 			if (string.IsNullOrWhiteSpace(command))
 				return false;
@@ -103,12 +83,7 @@ namespace PuppetMaster
 					serverURL = parts[3];
 					string mSec = parts[4];
 					string numOfPlayers = parts[5];
-
-					CheckPCSConnection(PCSDic, PCSURL);
-					PCSDic[PCSURL].StartServer(serverPId + " " + serverURL + " " + mSec + " " + numOfPlayers);
-
-					program = (ICommands)Activator.GetObject(typeof(ICommands), serverURL);
-					CheckProgram(program, serverPId, serverURL);
+					Task.Run(() => StartServerParalel(PCSURL, mSec, numOfPlayers));
 					break;
 				case "StartClient":
 					string clientPId = parts[1];
@@ -116,68 +91,35 @@ namespace PuppetMaster
 					string clientURL = parts[3];
 					string clientMSec = parts[4];
 					string filename = parts.Count() == 6 ? null : parts[6];
-
-					CheckPCSConnection(PCSDic, PCSURL2);
-					PCSDic[PCSURL2].StartClient(clientPId + " " + clientURL + " " + serverPId + " " + serverURL + " " + clientMSec + " " + filename);
-
-					program = (ICommands)Activator.GetObject(typeof(ICommands), clientURL);
-					CheckProgram(program, clientPId, clientURL);
+					Task.Run(() => StartClientParal(clientPId, PCSURL2, clientURL, clientMSec, filename));
 					break;
 				case "GlobalStatus":
-					Console.WriteLine("Getting global status");
-					Parallel.ForEach(activators.Values, connection =>
-					{
-						connection.GlobalStatus();
-					});
+					Task.Run(() => GlobalStatusParal());
 					break;
 				case "Crash":
 					processPId = parts[1];
-					if (activators.TryGetValue(processPId, out program))
-					{
-						//program.Crash();
-						new Task(program.Crash).Start();
-						activators.Remove(processPId);
-						urls.Remove(processPId);
-					}
+					Task.Run(() => CrashParal(processPId));
 					break;
 				case "Freeze":
 					processPId = parts[1];
-					if (activators.TryGetValue(processPId, out program))
-						program.Freez();
+					Task.Run(() => FreezParal(processPId));
 					break;
 				case "Unfreeze":
 					processPId = parts[1];
-					if (activators.TryGetValue(processPId, out program))
-						program.UnFreez();
+					Task.Run(() => UnfreezParal(processPId));
 					break;
 				case "InjectDelay":
 					string srcPID = parts[1];
 					string dstPID = parts[2];
-					if (activators.TryGetValue(srcPID, out program))
-						program.InjectDelay(dstPID, 1000);
+					Task.Run(() => InjectDelayParal(srcPID, dstPID));
 					break;
 				case "LocalState":
 					processPId = parts[1];
-					int round;
-					int.TryParse(parts[2], out round);
-					if (activators.TryGetValue(processPId, out program))
-						Console.WriteLine(program.LocalState(round));
+					Task.Run(() => LocalStateParal(processPId, parts));
 					break;
 				case "Wait":
-					timer.Stop();
 					Thread.Sleep(int.Parse(parts[1]));
-					timer.Start();
-					/*
-					if (timer.Enabled)
-					{
-						moreWait += int.Parse(parts[1]);
-					}
-					else
-					{
-						timer.Interval = int.Parse(parts[1]);
-						timer.Start();
-					}*/
-					return false;
+					break;
 				default:
 					Console.WriteLine("Unknow command " + command);
 					break;
@@ -185,28 +127,146 @@ namespace PuppetMaster
 			return true;
 		}
 
-		private void CheckProgram(ICommands program, string clientPId, string clientURL)
+		private void GlobalStatusParal()
 		{
-			urls.Add(clientPId, clientURL);
-			if (program == null)
+			Console.WriteLine("Getting global status");
+			Parallel.ForEach(activators.Values, connection =>
 			{
-				Console.WriteLine("Could not locate process");
-			}
-			else
-			{
-				activators.Add(clientPId, program);
-			}
+				connection.GlobalStatus();
+			});
 		}
 
-		private void CheckPCSConnection(Dictionary<string, IServicePCS> dic, string PCSURL2)
+		private void CrashParal(string processPId)
 		{
-			if (!dic.ContainsKey(PCSURL2))
+			ICommands program;
+			if (!TryGetProgram(processPId, out program))
 			{
-				Console.WriteLine("Connecting to new PCS");
-				dic[PCSURL2] = (IServicePCS)Activator.GetObject(typeof(IServicePCS), PCSURL2);
-				Thread.Sleep(2000);
+				Console.WriteLine("cant find client to get local state");
+				return;
 			}
+			program.Crash();
+			activators.Remove(processPId);
+			urls.Remove(processPId);
 		}
-		#endregion
+
+		private void LocalStateParal(string processPId, string[] parts)
+		{
+			ICommands program;
+			int round = int.Parse(parts[2]);
+			Console.WriteLine("Trying to get state");
+			if (!TryGetProgram(processPId, out program))
+			{
+				Console.WriteLine("cant find client to get local state");
+				return;
+			}
+			string output;
+			try
+			{
+				output = program.LocalState(round);
+			}
+			catch (Exception)
+			{
+				// for example if client crash during response
+				return;
+			}
+			Console.WriteLine("State");
+			Console.WriteLine(output);
+			StreamWriter sw = new StreamWriter("LocalState-" + processPId + "-" + round);
+			sw.Write(output);
+			sw.Close();
+			}
+
+			private void InjectDelayParal(string srcPID, string dstPID)
+			{
+				ICommands program;
+				if (!TryGetProgram(srcPID, out program))
+				{
+					Console.WriteLine("cant find client to inject delay");
+					return;
+				}
+				program.InjectDelay(dstPID, 1000);
+			}
+
+			private void UnfreezParal(string processPId)
+			{
+				ICommands program;
+				if (!TryGetProgram(processPId, out program))
+				{
+					Console.WriteLine("cant find client to unfreez");
+					return;
+				}
+				program.UnFreez();
+			}
+
+			private void FreezParal(string processPId)
+			{
+				ICommands program;
+				if (!TryGetProgram(processPId, out program))
+				{
+					Console.WriteLine("cant find client to freez");
+					return;
+				}
+				program.Freez();
+			}
+			private bool TryGetProgram(string processPId, out ICommands program)
+			{
+				int retry = 0;
+				while (!activators.TryGetValue(processPId, out program))
+				{
+					Thread.Sleep(100);
+					if (retry++ >= 5)
+					{
+						return false;
+					}
+				}
+				return true;
+			}
+
+			private void StartClientParal(string clientPId, string PCSURL, string clientURL, string clientMSec, string filename)
+			{
+				CheckPCSConnection(PCSDic, PCSURL);
+				PCSDic[PCSURL].StartClient(clientPId + " " + clientURL + " " + serverPId + " " + serverURL + " " + clientMSec + " " + filename);
+
+				ICommands program = (ICommands)Activator.GetObject(typeof(ICommands), clientURL);
+				CheckProgram(program, clientPId, clientURL);
+			}
+
+			private void StartServerParalel(string PCSURL, string mSec, string numOfPlayers)
+			{
+				CheckPCSConnection(PCSDic, PCSURL);
+				PCSDic[PCSURL].StartServer(serverPId + " " + serverURL + " " + mSec + " " + numOfPlayers);
+
+				ICommands program = (ICommands)Activator.GetObject(typeof(ICommands), serverURL);
+				CheckProgram(program, serverPId, serverURL);
+			}
+
+			private void CheckProgram(ICommands program, string clientPId, string clientURL)
+			{
+				lock (this)
+				{
+					urls.Add(clientPId, clientURL);
+					if (program == null)
+					{
+						Console.WriteLine("Could not locate process");
+					}
+					else
+					{
+						activators.Add(clientPId, program);
+					}
+				}
+			}
+
+			private void CheckPCSConnection(Dictionary<string, IServicePCS> dic, string PCSURL2)
+			{
+				lock (this)
+				{
+					if (!dic.ContainsKey(PCSURL2))
+					{
+						Console.WriteLine("Connecting to new PCS");
+						dic[PCSURL2] = (IServicePCS)Activator.GetObject(typeof(IServicePCS), PCSURL2);
+					}
+				}
+			}
+			#endregion
+		}
 	}
-}

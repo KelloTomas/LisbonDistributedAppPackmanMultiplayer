@@ -9,6 +9,7 @@ using System.Linq;
 using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
+using System.Threading;
 using System.Windows.Forms;
 
 
@@ -40,6 +41,7 @@ namespace pacmanClient
 
 		private Dictionary<string, IServiceClientWithState> _clients = new Dictionary<string, IServiceClientWithState>();
 		private int _score = 0;
+		private int _getStateOfRound = -1;
 		#endregion
 
 		#region constructor...
@@ -55,15 +57,15 @@ namespace pacmanClient
 			int mSec = int.Parse(args[4]);
 			if (args.Count() == 6)
 			{
-                try
-                {
-				    reader = new StreamReader(args[5]);
-				    ReadNextInstruction(reader);
-                }
-                catch (Exception)
-                {
-                    Console.WriteLine("Cant read file, check path: " + args[5]);
-                }
+				try
+				{
+					reader = new StreamReader(args[5]);
+					ReadNextInstruction(reader);
+				}
+				catch (Exception)
+				{
+					Console.WriteLine("Cant read file, check path: " + args[5]);
+				}
 			}
 			_timer = new System.Timers.Timer() { Interval = mSec, AutoReset = true, Enabled = false };
 			_timer.Elapsed += Timer_Tick;
@@ -83,7 +85,7 @@ namespace pacmanClient
 				serverURL);
 			try
 			{
-				_delays.SendWithDelay(_serverPId, (Action<string, string>) server.RegisterPlayer, new object[] { _pId, myURL });
+				_delays.SendWithDelay(_serverPId, (Action<string, string>)server.RegisterPlayer, new object[] { _pId, myURL });
 			}
 			catch
 			{
@@ -152,12 +154,12 @@ namespace pacmanClient
 				{
 					d = commandFromFile.Item2;
 					ReadNextInstruction(reader);
-					Console.WriteLine("Round: " + _roundId + " Sending direction from file: " + d);
+					//Console.WriteLine("Round: " + _roundId + " Sending direction from file: " + d);
 				}
 				else
 				{
 					d = _direction;
-					Console.WriteLine("Round: " + _roundId + " Sending direction: " + d);
+					//Console.WriteLine("Round: " + _roundId + " Sending direction: " + d);
 				}
 				_delays.SendWithDelay(_serverPId, (Action<string, int, Direction>)server.SetMove, new object[] { _pId, _roundId, d });
 			}
@@ -173,7 +175,7 @@ namespace pacmanClient
 					_messageQueue.NewMessage(vectorClock, _messageQueue.GetMyId(), tbMsg.Text);
 					foreach (KeyValuePair<string, IServiceClientWithState> client in _clients)
 					{
-						_delays.SendWithDelay(client.Key, (Action<int[], int, string>)client.Value.MessageReceive, new object[] { vectorClock , _messageQueue.GetMyId(), _pId + ": " + tbMsg.Text });
+						_delays.SendWithDelay(client.Key, (Action<int[], int, string>)client.Value.MessageReceive, new object[] { vectorClock, _messageQueue.GetMyId(), _pId + ": " + tbMsg.Text });
 					}
 					tbChat.Text = _messageQueue.GetAllMessages();
 					tbMsg.Clear();
@@ -201,7 +203,7 @@ namespace pacmanClient
 					}
 					foreach (var player in game.Players)
 					{
-						Console.WriteLine("Player "+ player.Key);
+						//Console.WriteLine("Player " + player.Key);
 						players.Add(DrawNewCharacterToGame(Controls, Properties.Resources.Right, CharactersSize.Player));
 					}
 					foreach (var monster in game.Monsters)
@@ -275,7 +277,14 @@ namespace pacmanClient
 
 		public void GameUpdate(Game game)
 		{
-			Console.WriteLine("Updating game, round: " + game.RoundId);
+			if (game.RoundId == _getStateOfRound)
+			{
+				Console.WriteLine("Send state. I am in round: " + _getStateOfRound);
+				Monitor.Pulse(this);
+				Thread.Sleep(100);
+				_getStateOfRound = -1;
+			}
+			//Console.WriteLine("Updating game, round: " + game.RoundId);
 			lock (this)
 			{
 				_game = game;
@@ -422,12 +431,35 @@ namespace pacmanClient
 		#region Log local and global state...
 		internal void GlobalStatus()
 		{
-			LogLocalGlobal.GlobalStatus(_game);
+			Console.WriteLine(LogLocalGlobal.LocalState(_game, _pId));
 		}
 
-		internal string LocalState()
+		public string LocalState(int roundId)
 		{
-			return LogLocalGlobal.LocalState(_game, _pId);
+			lock (this)
+			{
+				if (_getStateOfRound != -1)
+				{
+					Console.WriteLine("already asked for state");
+					return "You already asked for Local state of " + _getStateOfRound + " round";
+				}
+				if (roundId == _game.RoundId)
+				{
+					Console.WriteLine("great timing");
+					return LogLocalGlobal.LocalState(_game, _pId);
+				}
+				if (roundId > _game.RoundId)
+				{
+					_getStateOfRound = roundId;
+					Console.WriteLine("going to wait for state");
+					Monitor.Wait(this);
+					Console.WriteLine("Woke up");
+					return LogLocalGlobal.LocalState(_game, _pId);
+				}
+				string r = "Too late, you want game from round " + roundId + " and I am already in round: " + _game.RoundId;
+				Console.WriteLine(r);
+				return r;
+			}
 		}
 		#endregion
 	}

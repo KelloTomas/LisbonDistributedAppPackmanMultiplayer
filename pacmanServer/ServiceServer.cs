@@ -48,8 +48,7 @@ namespace pacmanServer
 
 		public string LocalState(int roundId)
 		{
-			//throw new NotImplementedException();
-            return "NotImplemented";
+            return _program.LocalState(roundId);
 		}
 
 		public void Freez()
