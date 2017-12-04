@@ -8,6 +8,8 @@ namespace Shared
 		void MessageReceive(int[] vectorClock, int pId, string msg);
 		void ClientDisconnect(string pid);
 		void ClientConnect(string pid, string URL);
+		int GetChatId();
+		int[] GetVectorClocks();
 		void GameUpdate(Game game);
 		void GameEnded(bool win);
 	}

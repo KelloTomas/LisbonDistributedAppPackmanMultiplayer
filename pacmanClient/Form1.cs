@@ -28,8 +28,8 @@ namespace pacmanClient
 		private List<PictureBox> players = new List<PictureBox>();
 		private List<PictureBox> monsters = new List<PictureBox>();
 		private List<PictureBox> coins = new List<PictureBox>();
-		private MessageQueue _messageQueue;
 
+		private MessageQueue _messageQueue;
 		private int _roundId = -1;
 		private Game _game = null;
 		private ServiceClientWithState serviceClient;
@@ -172,6 +172,7 @@ namespace pacmanClient
 				if (e.KeyCode == Keys.Enter)
 				{
 					int[] vectorClock = _messageQueue.GetVectorClock();
+					vectorClock[_messageQueue.GetMyId()]++;
 					_messageQueue.NewMessage(vectorClock, _messageQueue.GetMyId(), tbMsg.Text);
 					foreach (KeyValuePair<string, IServiceClientWithState> client in _clients)
 					{
@@ -203,7 +204,6 @@ namespace pacmanClient
 					}
 					foreach (var player in game.Players)
 					{
-						//Console.WriteLine("Player " + player.Key);
 						players.Add(DrawNewCharacterToGame(Controls, Properties.Resources.Right, CharactersSize.Player));
 					}
 					foreach (var monster in game.Monsters)
@@ -223,9 +223,13 @@ namespace pacmanClient
 				{
 					if (client.PId == _pId)
 						continue;
-					_clients.Add(client.PId, (IServiceClientWithState)Activator.GetObject(
-					typeof(IServiceClient),
-					client.URL));
+					IServiceClientWithState c = (IServiceClientWithState)Activator.GetObject(
+																			typeof(IServiceClient), client.URL);
+					if (myId == -1) // meaning that he connected to chat later, and need to get id from other clients
+					{
+						_messageQueue.Init(c.GetChatId(), c.GetVectorClocks());
+					}
+					_clients.Add(client.PId, c);
 				}
 				_timer.Start();
 			}
@@ -286,7 +290,7 @@ namespace pacmanClient
 						_GameToSend = game;
 						Console.WriteLine("Send state: I am in round: " + game.RoundId);
 						Monitor.PulseAll(this);
-                        Console.WriteLine("Send state: I am in round: " + game.RoundId);
+						Console.WriteLine("Send state: I am in round: " + game.RoundId);
 					}
 				}
 			}
@@ -395,6 +399,14 @@ namespace pacmanClient
 				typeof(IServiceClient),
 				URL));
 			}
+		}
+		internal int GetChatId()
+		{
+			return _messageQueue.GetMyId();
+		}
+		internal int[] GetVectorClocks()
+		{
+			return _messageQueue.GetVectorClock();
 		}
 		internal void GameEnded(bool win)
 		{

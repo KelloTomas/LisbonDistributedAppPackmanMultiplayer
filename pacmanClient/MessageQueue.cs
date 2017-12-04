@@ -16,6 +16,7 @@ namespace pacmanClient
 	{
 		#region private fields
 		private int[] vectorClock;
+		private int[] initVectorClock;
 		private Collection<Message> messages = new Collection<Message>();
 		private Collection<Message> pendingMessages = new Collection<Message>();
 		private readonly int MAX_MESSAGES = 15;
@@ -29,14 +30,47 @@ namespace pacmanClient
 			_myId = myId;
 			_numberOfClients = numberOfClients;
 			vectorClock = new int[numberOfClients];
+			initVectorClock = new int[numberOfClients];
 			for (int i = 0; i < numberOfClients; i++)
 			{
-				vectorClock[i] = 0;
+				if (myId == -1)
+					vectorClock[i] = -1; // client joined chat later, so values are unknow
+				else
+					vectorClock[i] = 0;
+				initVectorClock[i] = 0;
 			}
 			for (int i = 0; i<MAX_MESSAGES;i++)
 			{
 				messages.Add(new Message() { Clock = vectorClock });
 			}
+		}
+
+		internal void Init(int clientId, int[] clientVectorClocks)
+		{
+			// if client connected later. Need to get sequence number of others.
+			vectorClock[clientId] = clientVectorClocks[clientId];
+			// init vector clock to highests values
+			// after all init clients he will find missing ID and assign
+			// sequence number to continue
+			int countMissingValues = 0;
+			int missingValueId = 0;
+			for (int i = 0; i < clientVectorClocks.Length; i++)
+			{
+				if(clientVectorClocks[i] > initVectorClock[i])
+					initVectorClock[i] = clientVectorClocks[i];
+				if(vectorClock[i] == -1)
+				{
+					countMissingValues++;
+					missingValueId = i;
+				}
+			}
+			// if only one value is missing, than it is my
+			if(countMissingValues == 1)
+			{
+				_myId = missingValueId;
+				vectorClock[_myId] = initVectorClock[_myId];
+			}
+			
 		}
 		#endregion
 
@@ -48,6 +82,12 @@ namespace pacmanClient
 
 		internal void NewMessage(int[] clocks, int id, string msg)
 		{
+			Console.Write("Clocks state:");
+			foreach (int c in clocks)
+			{
+				Console.Write(" " + c);
+			}
+			Console.WriteLine();
 			Message m = new Message() { Clock = clocks, Msg = msg, Id = id };
 			if (IsValidMsg(m))
 			{
@@ -108,11 +148,8 @@ namespace pacmanClient
 						continue; // do not control with my seq number
 					if (i == newMessage.Id)
 					{
-						if (vectorClock[i] + 1 != newMessage.Clock[i]) // order of msg of sender
-						{
-							Console.WriteLine("Sender BAD order detected - " + vectorClock[i] + ":" + newMessage.Clock[i]);
-							return false;
-						}
+						// if new client connected insted of old crashed. One or more messages can missing
+						// So I am not controlling order of messages from sending client(expectin TCP/IP FIFO)
 						continue;
 					}
 					if (vectorClock[i] < newMessage.Clock[i])
@@ -121,10 +158,11 @@ namespace pacmanClient
 						return false;
 					}
 				}
-				vectorClock[newMessage.Id]++;
+				vectorClock[newMessage.Id] = newMessage.Clock[newMessage.Id];
 				return true;
 			}
 		}
+
 		#endregion
 	}
 }

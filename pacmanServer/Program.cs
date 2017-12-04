@@ -33,7 +33,6 @@ namespace pacmanServer
         private ServiceServer serviceServer;
         private Rectangle b1 = new Rectangle();
         private Rectangle b2 = new Rectangle();
-        private int clientId;
         private bool _secondary = false;
         private object[] _last = null;
         private List<Client> _clientsList = new List<Client>();
@@ -398,7 +397,6 @@ namespace pacmanServer
         }
         private void BroadcastClientDisconnect(string pid)
         {
-            clientId = 0;
             foreach (KeyValuePair<string, IServiceClient> client in _clientsDict)
             {
                 if (client.Key.Equals(pid))
@@ -410,7 +408,6 @@ namespace pacmanServer
         }
         private void BroadcastClientConnect(string pid, string URL)
         {
-            clientId = 0;
             foreach (KeyValuePair<string, IServiceClient> client in _clientsDict)
             {
                 if (client.Key.Equals(pid))
@@ -449,7 +446,6 @@ namespace pacmanServer
                                 break;
                             }
                         }
-                        clientId--;
                         _numPlayers--;
                         BroadcastClientDisconnect(client.Key);
                         if (client_queue.Count > 0)
@@ -504,7 +500,8 @@ namespace pacmanServer
                         player.Y = 40;
                         player.state = State.Playing;
                         _numPlayers++;
-                        delays.SendWithDelay((string)obj[0], (Action<string, int, List<Client>, Game>)service.GameStarted, new object[] { _pId, clientId++, _clientsList, _game });
+						// clientId used for chat ID and -1 means that he joined chat later and need to get ID from other clients
+                        delays.SendWithDelay((string)obj[0], (Action<string, int, List<Client>, Game>)service.GameStarted, new object[] { _pId, -1, _clientsList, _game });
                         BroadcastClientConnect((string)obj[0], (string)obj[1]);
                     }
                     else
@@ -677,7 +674,7 @@ namespace pacmanServer
 
         private void BroadcastGameStart()
         {
-            clientId = 0;
+            int clientId = 0;
             foreach (KeyValuePair<string, IServiceClient> client in _clientsDict)
             {
                 delays.SendWithDelay(client.Key, (Action<string, int, List<Client>, Game>)client.Value.GameStarted, new object[] { _pId, clientId++, _clientsList, _game });

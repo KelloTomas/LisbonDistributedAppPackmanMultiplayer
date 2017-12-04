@@ -32,6 +32,16 @@ namespace pacmanClient
 		{
 			_frozens.Freeze((Action<string, string>)_form.ClientConnect, new object[] { pid , URL});
 		}
+		// init funkcion. Called ones after start, so program has no delays.
+		public int GetChatId()
+		{
+			return _form.GetChatId();
+		}
+		// init funkcion. Called ones after start, so program has no delays.
+		public int[] GetVectorClocks()
+		{
+			return _form.GetVectorClocks();
+		}
 		public void MessageReceive(int[] vectorClock, int pId, string msg)
 		{
 			_frozens.Freeze((Action< int[] , int , string >)_form.MessageReceive, new object[] { vectorClock, pId, msg });
