@@ -285,9 +285,8 @@ namespace pacmanClient
 					{
 						_GameToSend = game;
 						Console.WriteLine("Send state: I am in round: " + game.RoundId);
-						Monitor.Pulse(this);
 						Monitor.PulseAll(this);
-						Monitor.Wait(this);
+                        Console.WriteLine("Send state: I am in round: " + game.RoundId);
 					}
 				}
 			}
@@ -351,10 +350,7 @@ namespace pacmanClient
 				if (game.Players.ElementAt(i).Value.Score != _score)
 				{
 					_score = game.Players.ElementAt(i).Value.Score;
-					BeginInvoke(new MethodInvoker(delegate
-					{
-						label1.Text = "Score: " + _score;
-					}));
+					label1.Text = "Score: " + _score;
 				}
 			}
 			players.ElementAt(i).Left = game.Players.ElementAt(i).Value.X;
@@ -461,7 +457,6 @@ namespace pacmanClient
 					Console.WriteLine("going to wait for state: " + _GameToSend.RoundId);
 					Monitor.Wait(this);
 					Console.WriteLine("Woke up");
-					Monitor.PulseAll(this);
 					return LogLocalGlobal.LocalState(_GameToSend, _pId);
 				}
 				string r = "Too late, you want game from round " + roundId + " and I am already in round: " + _game.RoundId;
