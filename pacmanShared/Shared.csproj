@@ -91,7 +91,6 @@
   <ItemGroup>
     <Compile Include="LogLocalGlobal.cs" />
     <Compile Include="Delays.cs" />
-    <Compile Include="Frozens.cs" />
     <Compile Include="IServicePCS.cs" />
     <Compile Include="Shared.cs" />
     <Compile Include="ICommands.cs" />

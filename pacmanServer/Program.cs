@@ -50,9 +50,11 @@ namespace pacmanServer
         WaitPrimaryServerFailDelegate waitFail;
         IServiceServer _primary_server = null;
         private int _getStateOfRound = -1;
-        #endregion
-        #region start program...
-        static void Main(string[] args)
+		private string PCSurl;
+		private IServicePCS PCS;
+		#endregion
+		#region start program...
+		static void Main(string[] args)
         {
             new Program().Init(args);
         }
@@ -69,9 +71,11 @@ namespace pacmanServer
             int mSec = int.Parse(args[2]);
             _maxNumPlayers = int.Parse(args[3]);
 
-            if (args.Length == 5 && args[4].Equals("secondary"))
+            if (args.Length == 6 && args[4].Equals("secondary"))
             {
-                _secondary = true;
+				PCSurl = args[5];
+				PCS = (IServicePCS)Activator.GetObject(typeof(IServicePCS), PCSurl);
+				_secondary = true;
                 waitFail = GetGamePrimaryServer;
                 _primary_server = (IServiceServer)Activator.GetObject(typeof(IServiceServer), myURL);
                 _timer = new System.Timers.Timer() { AutoReset = true, Enabled = false, Interval = 3000 };
@@ -79,26 +83,27 @@ namespace pacmanServer
                 _timer.Start();
                 lock (this)
                 {
-                    Console.WriteLine("Secondary Server Mode : Waiting for primary server to fail...");
+                    Console.WriteLine("Secondary Server Mode : Waiting for primary server "+_pId+" to fail...");
                     Monitor.Wait(this);
-                    Console.WriteLine("_last size  = " + _last.Length);
-                    _game = (Game)_last[0];
-                    _clientsDict = (Dictionary<string, IServiceClient>)_last[1];
-                    _clientsList = (List<Client>)_last[2];
-                    /*_frozens = (Frozens )_last[3];
-					delays = (Delays)_last[4];*/
-                    // do this to unregister the channel
-                    IChannel[] regChannels = ChannelServices.RegisteredChannels;
+					//Console.WriteLine("_last size  = " + _last.Length);
+					Console.WriteLine("Primary Server Failed... Taking Control");
+					_game = (Game)_last[0];
+					_clientsDict = (Dictionary<string, IServiceClient>)_last[1];
+					_clientsList = (List<Client>)_last[2];
+					_lastRoundReceived = (Dictionary<string, int>)_last[3];
+					_lastRoundSaved = (Dictionary<string, int>)_last[4];
+					client_queue = (Queue)_last[5];
+
+					// do this to unregister the channel
+					IChannel[] regChannels = ChannelServices.RegisteredChannels;
                     foreach (IChannel ch in regChannels)
                     {
-                        //Console.WriteLine("CHANNEL : " + ch.ChannelName);
+                        Console.WriteLine("CHANNEL : " + ch.ChannelName);
                         if (ch.ChannelName.Equals("tcp"))
                         {
                             ChannelServices.UnregisterChannel(ch);
                         }
                     }
-
-
                 }
                 _timer.Stop();
                 _timer.Close();
@@ -111,8 +116,7 @@ namespace pacmanServer
             {
                 Console.WriteLine("Starting...");
                 _timer.Start();
-                _secondary = false;
-            }
+			}
             waitClients.BeginInvoke(null, null);
 
             lock (this)
@@ -122,24 +126,24 @@ namespace pacmanServer
                 {
                     channel = new TcpChannel(int.Parse(Shared.Shared.ParseUrl(URLparts.Port, myURL)));
                     ChannelServices.RegisterChannel(channel, false);
-                }
+					/*set service */
+					serviceServer = new ServiceServer(this, delays);
+					string link = Shared.Shared.ParseUrl(URLparts.Link, myURL);
+					Console.WriteLine("Starting server on " + myURL + ", link: " + link);
+					RemotingServices.Marshal(serviceServer, link);
+				}
                 catch
                 {
-                    Console.WriteLine("CATCH!!!!");
-
-                    //ChannelServices.UnregisterChannel(channel);
+                    Console.WriteLine("CATCH!!!! COULD NOT REGISTER SECONDARY SERVER, PRIMARY IS PROBABLY STILL RUNNING");
                 }
-                /*set service */
-                serviceServer = new ServiceServer(this, delays);
-                string link = Shared.Shared.ParseUrl(URLparts.Link, myURL);
-                Console.WriteLine("Starting server on " + myURL + ", link: " + link);
-                RemotingServices.Marshal(serviceServer, link);
             }
-            string programArguments = _pId + " " + myURL + " " + mSec + " " + _maxNumPlayers + " secondary";
-            string ExeFileNameServer = "pacmanServer.exe";
-            Process.Start(Path.Combine("..\\..\\..\\pacmanServer\\bin\\Debug", ExeFileNameServer),
-                                                programArguments);
-            while (true)
+			if (_secondary)
+			{
+				string programArguments = _pId + " " + myURL + " " + mSec + " " + _maxNumPlayers;
+				PCS.StartSecondaryServer(programArguments);
+				_secondary = false;
+			}
+			while (true)
             {
                 Console.ReadLine();
             }
@@ -147,23 +151,27 @@ namespace pacmanServer
         #endregion
 
         #region RoundRobin program flow...
+		private void ServerPeriodicTasks()
+		{
+			_game.RoundId++;
+			if (_game.RoundId % 3 == 0)
+			{
+				CheckClientDisconnections();
+			}
+			Console.WriteLine("Round: " + _game.RoundId + " Updating...");
+			UpdateGame();
+			if (_getStateOfRound == _game.RoundId)
+			{
+				Monitor.PulseAll(this);
+				_getStateOfRound = -1;
+			}
+			SendUpdatedGameToClients(_game);
+		}
         private void Timer_Elapsed(object sender, ElapsedEventArgs e)
         {
             lock (this)
             {
-                _game.RoundId++;
-				if(_game.RoundId % 3 == 0)
-				{
-					CheckClientDisconnections();
-				}
-                Console.WriteLine("Round: " + _game.RoundId + " Updating...");
-                UpdateGame();
-                if (_getStateOfRound == _game.RoundId)
-                {
-                    Monitor.PulseAll(this);
-                    _getStateOfRound = -1;
-                }
-                SendUpdatedGameToClients(_game);
+				delays.Freeze((Action)ServerPeriodicTasks, new object[] { });
             }
         }
         private void Timer_Elapsed_Secondary(object sender, ElapsedEventArgs e)
@@ -174,13 +182,14 @@ namespace pacmanServer
                 IAsyncResult asyncResult = waitFail.BeginInvoke(null, null);
                 if (!asyncResult.AsyncWaitHandle.WaitOne(2000)) //timeout replicate new server
                 {
-                    lock (this)
+					// todo : unregister primary server if alive with remote call
+					
+					lock (this)
                     {
                         Monitor.PulseAll(this);
                     }
-
-                }
-                else
+				}
+				else
                 {
                     _last = waitFail.EndInvoke(asyncResult);
                 }
@@ -192,7 +201,7 @@ namespace pacmanServer
 
         public object[] ImAlive()
         {
-            return new object[] { _game, _clientsDict, _clientsList/*, _frozens, delays*/};
+            return new object[] { _game, _clientsDict, _clientsList, _lastRoundReceived, _lastRoundSaved, client_queue};
         }
         public void SetMove(string pId, int roundId, Direction direction)
         {

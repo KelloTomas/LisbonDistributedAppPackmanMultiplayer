@@ -14,7 +14,11 @@ namespace CommonTypes
 
 		private int _frozenCount = 0;
 		private bool _isFrozen = false;
+		delegate void FreezeDelegate(Delegate v, params object[] parameters);
+		delegate object FreezeDelegateReturn(Delegate v, params object[] parameters);
+
 		FreezeDelegate freeze;
+		FreezeDelegateReturn freezeReturn;
 
 		public void Freez()
 		{
@@ -51,13 +55,21 @@ namespace CommonTypes
 			freeze = Freez;
 			freeze.BeginInvoke(v, parameters, null, null);
 		}
-
+		public object FreezeWithReturn(Delegate v, params object[] parameters)
+		{
+			freezeReturn = FreezReturn;
+			return freezeReturn.EndInvoke(freezeReturn.BeginInvoke(v, parameters, null, null));
+		}
 		public void Freez(Delegate v, params object[] parameters)
 		{
 			IsFrozen();
 			v.DynamicInvoke(parameters);
 		}
-
+		public object FreezReturn(Delegate v, params object[] parameters)
+		{
+			IsFrozen();
+			return v.DynamicInvoke(parameters);
+		}
 		public void AddDelay(string pId, int length)
 		{
 			if (length == 0)

@@ -21,7 +21,10 @@ namespace ProcessCreationService
 		{
 			_program.StartServer(programArguments);
 		}
-
+		public void StartSecondaryServer(string programArguments)
+		{
+			_program.StartSecondaryServer(programArguments);
+		}
 		public void StartClient(string programArguments)
 		{
 			_program.StartClient(programArguments);

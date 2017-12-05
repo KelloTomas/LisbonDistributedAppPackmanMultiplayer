@@ -5,7 +5,6 @@ StartClient myClient2 tcp://localhost:8085/PCS tcp://localhost:8088/ClientServic
 #Wait 5000
 StartClient myClient3 tcp://localhost:8085/PCS tcp://localhost:8089/ClientServicesName 200 2
 StartClient myClient4 tcp://localhost:8085/PCS tcp://localhost:8090/ClientServicesName 200 2
-
 #Wait 5000
 #InjectDelay myClient2 myServer
 #LocalState myClient1 50

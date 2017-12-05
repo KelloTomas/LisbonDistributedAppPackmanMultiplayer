@@ -31,8 +31,8 @@ namespace pacmanServer
 		}
 		public object[] ImAlive()
 		{
-			//_frozens.Freeze((Action)_program.ImAlive, new object[] { });
-			return _program.ImAlive();
+			return (object[]) _frozens.FreezeWithReturn((Func<object[]>)_program.ImAlive, new object[] { });
+			//return _program.ImAlive();
 		}
 		#endregion
 

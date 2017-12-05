@@ -19,6 +19,7 @@ namespace ProcessCreationService
 		const string ExeFileNameServer = "pacmanServer.exe";
 		const string ExeFileNameClient = "pacmanClient.exe";
 		static Program p;
+		string myURL;
 #endregion
 
 		public static void Main(string[] args)
@@ -34,7 +35,7 @@ namespace ProcessCreationService
 				Console.WriteLine("Define PCS URL as argument");
 				return;
 			}
-			string myURL = args[0];
+			myURL = args[0];
 
 			string link = Shared.Shared.ParseUrl(URLparts.Link, myURL);
 			int port = int.Parse(Shared.Shared.ParseUrl(URLparts.Port, myURL));
@@ -73,6 +74,12 @@ namespace ProcessCreationService
 			Console.WriteLine(ExeFileNameServer + " " + programArguments);
 			process.Add(Process.Start(Path.Combine("..\\..\\..\\pacmanServer\\bin\\Debug", ExeFileNameServer),
 															programArguments));
+			StartSecondaryServer(programArguments);
+		}
+		public void StartSecondaryServer(string programArguments)
+		{
+			process.Add(Process.Start(Path.Combine("..\\..\\..\\pacmanServer\\bin\\Debug", ExeFileNameServer),
+												programArguments + " secondary " + myURL));
 		}
 
 		public void StartClient(string programArguments)
