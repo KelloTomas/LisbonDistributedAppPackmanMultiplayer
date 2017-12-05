@@ -12,6 +12,7 @@ using System.Threading;
 using System.Timers;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace pacmanServer
 {
@@ -37,9 +38,13 @@ namespace pacmanServer
         private object[] _last = null;
         private List<Client> _clientsList = new List<Client>();
         private Dictionary<string, IServiceClient> _clientsDict = new Dictionary<string, IServiceClient>();
-        private delegate void UpdateGameDelegate(KeyValuePair<string, IServiceClient> client, Game game);
-        UpdateGameDelegate asyncGameUpdate;
-        private delegate void WaitEnqueuedClientsDelegate();
+		private Dictionary<string, int> _lastRoundReceived = new Dictionary<string, int>();
+		private Dictionary<string, int> _lastRoundSaved = new Dictionary<string, int>();
+		private delegate void UpdateGameDelegate(KeyValuePair<string, IServiceClient> client, Game game);
+		UpdateGameDelegate asyncGameUpdate;
+		private delegate void CheckDisconnectedClientsDelegate();
+		CheckDisconnectedClientsDelegate CheckDcClients;
+		private delegate void WaitEnqueuedClientsDelegate();
         WaitEnqueuedClientsDelegate waitClients;
         private delegate object[] WaitPrimaryServerFailDelegate();
         WaitPrimaryServerFailDelegate waitFail;
@@ -93,8 +98,6 @@ namespace pacmanServer
                         }
                     }
 
-                    //channel = new TcpChannel(int.Parse(Shared.Shared.ParseUrl(URLparts.Port, myURL)));
-                    //ChannelServices.UnregisterChannel(channel);
 
                 }
                 _timer.Stop();
@@ -149,6 +152,10 @@ namespace pacmanServer
             lock (this)
             {
                 _game.RoundId++;
+				if(_game.RoundId % 3 == 0)
+				{
+					CheckClientDisconnections();
+				}
                 Console.WriteLine("Round: " + _game.RoundId + " Updating...");
                 UpdateGame();
                 if (_getStateOfRound == _game.RoundId)
@@ -189,68 +196,71 @@ namespace pacmanServer
         }
         public void SetMove(string pId, int roundId, Direction direction)
         {
-            _game.Players[pId].Direction = direction;
-            Console.WriteLine("Player " + pId + " : " + direction);
+			if (_lastRoundReceived.ContainsKey(pId))
+			{
+				_lastRoundReceived[pId]++;
+				_game.Players[pId].Direction = direction;
+				Console.WriteLine("Player " + pId + " : " + direction);
+			}
+			else
+			{
+				if (_clientsDict.ContainsKey(pId))
+				{
+					_lastRoundReceived.Add(pId, 0);
+					_lastRoundSaved.Add(pId, -1);
+				}
+			}
         }
 
         public void RegisterPlayer(string pId, string clientURL)
         {
-            if ((_numPlayers < _maxNumPlayers) && (full == true))
-            {
-                lock (this)
-                {
-                    lock (client_queue.SyncRoot)
-                    {
-                        Console.WriteLine("SERVER1 FULL and playeer " + pId + " with url " + clientURL + " try to connect");
-                        object[] toEnqueue = { pId, clientURL };
-                        client_queue.Enqueue(toEnqueue);
-                    }
-                    Monitor.Pulse(this);
-                }
-            }
-            else
-            {
-                if (_numPlayers == _maxNumPlayers)
-                {
-                    lock (this)
-                    {
-                        lock (client_queue.SyncRoot)
-                        {
-                            Console.WriteLine("SERVER2 FULL and playeer " + pId + " with url " + clientURL + " try to connect");
-                            object[] toEnqueue = { pId, clientURL };
-                            client_queue.Enqueue(toEnqueue);
-                        }
-                    }
-                }
-                else
-                {
-                    lock (this)
-                    {
-                        Console.WriteLine("Playeer " + pId + " with url " + clientURL + " is connected");
+			lock (this)
+			{
+				if ((_numPlayers < _maxNumPlayers) && (full == true))
+				{
+					lock (client_queue.SyncRoot)
+					{
+						Console.WriteLine("SERVER1 FULL and playeer " + pId + " with url " + clientURL + " try to connect");
+						object[] toEnqueue = { pId, clientURL };
+						client_queue.Enqueue(toEnqueue);
+					}
+					Monitor.Pulse(this);
+				}
+				else
+				{
+					if (_numPlayers == _maxNumPlayers)
+					{
+						lock (client_queue.SyncRoot)
+						{
+							Console.WriteLine("SERVER2 FULL and playeer " + pId + " with url " + clientURL + " try to connect");
+							object[] toEnqueue = { pId, clientURL };
+							client_queue.Enqueue(toEnqueue);
+						}
+					}
+					else
+					{
+						Console.WriteLine("Playeer " + pId + " with url " + clientURL + " is connected");
+					
+						_game.Players.Add(pId, new CharacterWithScore() { X = 8, Y = 40 * (_game.Players.Count + 1) });
 
-                        _game.Players.Add(pId, new CharacterWithScore() { X = 8, Y = 40 * (_game.Players.Count + 1) });
-
-                        /* get service */
-                        _clientsList.Add(new Client(pId, clientURL));
-                        _clientsDict.Add(pId, (IServiceClient)Activator.GetObject(
-                            typeof(IServiceClient),
-                            clientURL));
-                        if (++_numPlayers == _maxNumPlayers)
-                        {
-                            GameStart();
-                        }
-                        else
-                        {
-                            Console.WriteLine("Waiting for " + (_maxNumPlayers - _numPlayers) + " more players");
-                        }
-                        if (_numPlayers == _maxNumPlayers)
-                        {
-                            Console.WriteLine("SERVER FULL!");
-                            full = true;
-                        }
-                    }
-                }
-            }
+						/* get service */
+						_lastRoundReceived.Add(pId, 0);
+						_lastRoundSaved.Add(pId, -1);
+						_clientsList.Add(new Client(pId, clientURL));
+						_clientsDict.Add(pId, (IServiceClient)Activator.GetObject(typeof(IServiceClient), clientURL));
+						if (++_numPlayers == _maxNumPlayers)
+						{
+							GameStart();
+							Console.WriteLine("SERVER FULL!");
+							full = true;
+						}
+						else
+						{
+							Console.WriteLine("Waiting for " + (_maxNumPlayers - _numPlayers) + " more players");
+						}
+					}	
+				}
+			}
         }
         #endregion
 
@@ -422,10 +432,10 @@ namespace pacmanServer
         {
             IAsyncResult asyncResult;
             asyncResult = delays.SendWithDelay(client.Key, (Action<Game>)client.Value.GameUpdate, new object[] { game });
-            if (!asyncResult.AsyncWaitHandle.WaitOne(5000, false)) // timeout 5 seconds
+            /*if (!asyncResult.AsyncWaitHandle.WaitOne(5000, false)) // timeout 5 seconds
             {
                 lock (this)
-                {
+                {/*
                     CharacterWithScore player;
                     if (_game.Players.TryGetValue(client.Key, out player))
                     {
@@ -453,9 +463,61 @@ namespace pacmanServer
                             Monitor.Pulse(this);
                         Console.WriteLine("PULSEEEEEE");
                     }
-                }
-            }
+                 }
+             }*/
         }
+		private void DisconnectClient(string pid)
+		{
+			lock (this)
+			{
+				Console.WriteLine("Desconnecting Client " + pid + "...");
+				CharacterWithScore player;
+				if (_game.Players.TryGetValue(pid, out player))
+				{
+					player.X = -CharactersSize.Player;
+					player.Y = 0;
+					player.state = State.Disconnected;
+					//_game.Players.Remove(client.Key);
+				}
+				if (_lastRoundReceived.ContainsKey(pid))
+				{
+					_lastRoundReceived.Remove(pid);
+					_lastRoundSaved.Remove(pid);
+				}
+				if (_clientsDict.ContainsKey(pid))
+				{
+					//_clientsDict[pid].Crash();
+					_clientsDict.Remove(pid);
+					foreach (var c in _clientsList)
+					{
+						if (c.PId.Equals(pid))
+						{
+							_clientsList.Remove(c);
+							break;
+						}
+					}
+					_numPlayers--;
+					BroadcastClientDisconnect(pid);
+					if (client_queue.Count > 0)
+						Monitor.Pulse(this);
+					Console.WriteLine("PULSEEEEEE");
+				}
+			}
+		}
+		private void CheckClientDisconnections()
+		{
+			foreach (var client in _lastRoundReceived)
+			{
+				if(client.Value == _lastRoundSaved[client.Key])
+				{
+					DisconnectClient(client.Key);
+				}
+			}
+			foreach (var client in _lastRoundReceived)
+			{
+				_lastRoundSaved[client.Key] = client.Value;
+			}
+		}
         private void WaitEnqueuedClients()
         {
             lock (this)
@@ -465,9 +527,10 @@ namespace pacmanServer
                     Console.WriteLine("Waiting....");
                     Monitor.Wait(this);
                     Console.WriteLine("CONNECTING NEW PLAYER....");
-                    NewPlayerConnect();
-                }
-            }
+					Task.Run(() => NewPlayerConnect());
+
+				}
+			}
         }
         private void NewPlayerConnect()
         {

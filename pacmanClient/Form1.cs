@@ -159,7 +159,7 @@ namespace pacmanClient
 				else
 				{
 					d = _direction;
-					//Console.WriteLine("Round: " + _roundId + " Sending direction: " + d);
+					Console.WriteLine("Round: " + _roundId + " Sending direction: " + d);
 				}
 				_delays.SendWithDelay(_serverPId, (Action<string, int, Direction>)server.SetMove, new object[] { _pId, _roundId, d });
 			}
