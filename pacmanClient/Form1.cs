@@ -194,10 +194,10 @@ namespace pacmanClient
 			_messageQueue = new MessageQueue(clients.Count, myId);
 			_game = game;
 
-			BeginInvoke(new MethodInvoker(delegate
-			{
 				lock (this)
 				{
+			BeginInvoke(new MethodInvoker(delegate
+			{
 					foreach (var coin in game.Coins)
 					{
 						coins.Add(DrawNewCharacterToGame(Controls, Properties.Resources.coinPNG, CharactersSize.coin));
@@ -215,10 +215,7 @@ namespace pacmanClient
 						DrawObsticle(Controls, obsticle);
 					}
 					UpdateCoinPosition(game, true);
-				}
 			}));
-			lock (this)
-			{
 				foreach (Client client in clients)
 				{
 					if (client.PId == _pId)

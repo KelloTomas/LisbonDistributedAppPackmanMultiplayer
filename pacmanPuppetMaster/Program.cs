@@ -73,6 +73,7 @@ namespace PuppetMaster
 						}
 						catch
 						{
+							// pragram can be already closed
 						}
 					}
 					Environment.Exit(1);
