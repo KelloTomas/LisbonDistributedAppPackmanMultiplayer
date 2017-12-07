@@ -42,6 +42,7 @@ namespace pacmanClient
 		private Dictionary<string, IServiceClientWithState> _clients = new Dictionary<string, IServiceClientWithState>();
 		private int _score = 0;
 		private Game _GameToSend = null;
+		private bool _gameDrawFinished = false;
 		#endregion
 
 		#region constructor...
@@ -190,14 +191,17 @@ namespace pacmanClient
 		#region Client service...
 		public void GameStarted(string serverPId, int myId, List<Client> clients, Game game)
 		{
-			Console.WriteLine("game started");
-			_messageQueue = new MessageQueue(clients.Count, myId);
-			_game = game;
+			Console.WriteLine("game start received");
+			lock (this)
+			{
+				_messageQueue = new MessageQueue(clients.Count, myId);
+				_game = game;
+			}
 
-				lock (this)
-				{
 			BeginInvoke(new MethodInvoker(delegate
 			{
+				lock (this)
+				{
 					foreach (var coin in game.Coins)
 					{
 						coins.Add(DrawNewCharacterToGame(Controls, Properties.Resources.coinPNG, CharactersSize.coin));
@@ -215,7 +219,11 @@ namespace pacmanClient
 						DrawObsticle(Controls, obsticle);
 					}
 					UpdateCoinPosition(game, true);
+					_gameDrawFinished = true;
+				}
 			}));
+			lock (this)
+			{
 				foreach (Client client in clients)
 				{
 					if (client.PId == _pId)
@@ -280,6 +288,8 @@ namespace pacmanClient
 		{
 			lock (this)
 			{
+				if (!_gameDrawFinished)
+					return; // drawing of the game doesnt finished
 				if (_GameToSend != null)
 				{
 					if (game.RoundId == _GameToSend.RoundId)

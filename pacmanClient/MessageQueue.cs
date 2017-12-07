@@ -126,6 +126,7 @@ namespace pacmanClient
 				if (IsValidMsg(m))
 				{
 					AddMessage(m);
+					pendingMessages.Remove(m);
 					CheckPendingMessages();
 					return;
 				}
@@ -154,7 +155,12 @@ namespace pacmanClient
 					}
 					if (vectorClock[i] < newMessage.Clock[i])
 					{
-						Console.WriteLine("index: " + i + "msg error - " + vectorClock[i] + ":" + newMessage.Clock[i]);
+						Console.Write("index: " + i + " msg error - ");
+						foreach (int c in newMessage.Clock)
+						{
+							Console.Write(" " + c);
+						}
+						Console.WriteLine();
 						return false;
 					}
 				}
