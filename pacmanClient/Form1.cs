@@ -208,11 +208,11 @@ namespace pacmanClient
 					}
 					foreach (var player in game.Players)
 					{
-						players.Add(DrawNewCharacterToGame(Controls, Properties.Resources.Right, CharactersSize.Player));
+						players.Add(DrawNewCharacterToGame(Controls, Properties.Resources.Right1, CharactersSize.Player));
 					}
 					foreach (var monster in game.Monsters)
 					{
-						monsters.Add(DrawNewCharacterToGame(Controls, Properties.Resources.red_guy, CharactersSize.Monster));
+						monsters.Add(DrawNewCharacterToGame(Controls, Properties.Resources.red_guy1, CharactersSize.Monster));
 					}
 					foreach (var obsticle in game.Obsticles)
 					{
@@ -369,16 +369,16 @@ namespace pacmanClient
 			switch (game.Players.ElementAt(i).Value.Direction)
 			{
 				case Direction.UP:
-					players.ElementAt(i).Image = Properties.Resources.Up;
+					players.ElementAt(i).Image = Properties.Resources.Up1;
 					break;
 				case Direction.DOWN:
-					players.ElementAt(i).Image = Properties.Resources.Down;
+					players.ElementAt(i).Image = Properties.Resources.Down1;
 					break;
 				case Direction.LEFT:
-					players.ElementAt(i).Image = Properties.Resources.Left;
+					players.ElementAt(i).Image = Properties.Resources.Left1;
 					break;
 				case Direction.RIGHT:
-					players.ElementAt(i).Image = Properties.Resources.Right;
+					players.ElementAt(i).Image = Properties.Resources.Right1;
 					break;
 			}
 		}
