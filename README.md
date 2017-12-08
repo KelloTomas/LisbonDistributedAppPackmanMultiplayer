@@ -1,12 +1,13 @@
 # packmanMultiplayer
 
-## Not implemented
-- Causal order of messages
-- Client process commands
-- Server to ignore delayed commands
-
 ## Implemented
 - whole funkcionality, intersections, application freez, delay and crash
+- reading instruction from file
+- printing local and global state of application
+- replication
+- reconnect new client if crash
+- reconfiguration of chat with new client
+- causal order of messages in chat
 
 ## How to run
 - Build solution as DEBUG with Visual Studio
