@@ -42,7 +42,6 @@ namespace pacmanClient
 		private Dictionary<string, IServiceClientWithState> _clients = new Dictionary<string, IServiceClientWithState>();
 		private int _score = 0;
 		private Game _GameToSend = null;
-		private bool _gameDrawFinished = false;
 		#endregion
 
 		#region constructor...
@@ -191,7 +190,7 @@ namespace pacmanClient
 		#region Client service...
 		public void GameStarted(string serverPId, int myId, List<Client> clients, Game game)
 		{
-			Console.WriteLine("game start received");
+			Console.WriteLine(_pId + " game start received");
 			lock (this)
 			{
 				_messageQueue = new MessageQueue(clients.Count, myId);
@@ -219,7 +218,6 @@ namespace pacmanClient
 						DrawObsticle(Controls, obsticle);
 					}
 					UpdateCoinPosition(game, true);
-					_gameDrawFinished = true;
 				}
 			}));
 			lock (this)
@@ -288,8 +286,6 @@ namespace pacmanClient
 		{
 			lock (this)
 			{
-				if (!_gameDrawFinished)
-					return; // drawing of the game doesnt finished
 				if (_GameToSend != null)
 				{
 					if (game.RoundId == _GameToSend.RoundId)
@@ -300,15 +296,22 @@ namespace pacmanClient
 						Console.WriteLine("Send state: I am in round: " + game.RoundId);
 					}
 				}
-			}
-			lock (this)
-			{
 				_game = game;
 				BeginInvoke(new MethodInvoker(delegate
 				{
-					UpdatePlayersPosition(game);
-					UpdateMonsterPosition(game);
-					UpdateCoinPosition(game);
+					try
+					{
+						UpdatePlayersPosition(game);
+						UpdateMonsterPosition(game);
+						UpdateCoinPosition(game);
+					}
+					catch (ArgumentOutOfRangeException)
+					{
+						Console.WriteLine("PC seems to be slow. Doesn't draw all objects yet");
+					}
+					catch (Exception)
+					{
+					}
 				}));
 			}
 		}

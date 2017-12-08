@@ -43,7 +43,6 @@ namespace pacmanServer
 		private delegate void UpdateGameDelegate(KeyValuePair<string, IServiceClient> client, Game game);
 		UpdateGameDelegate asyncGameUpdate;
 		private delegate void CheckDisconnectedClientsDelegate();
-		CheckDisconnectedClientsDelegate CheckDcClients;
 		private delegate void WaitEnqueuedClientsDelegate();
         WaitEnqueuedClientsDelegate waitClients;
         private delegate object[] WaitPrimaryServerFailDelegate();
@@ -61,8 +60,8 @@ namespace pacmanServer
         void Init(string[] args)
         {
             Board = new Obsticle();
-            Board.Corner2.X = 320;
-            Board.Corner2.Y = 280;
+            Board.Corner2.X = 320 +10;
+            Board.Corner2.Y = 280 +10;
             Board.Corner1.X = 0;
             Board.Corner1.Y = 40;
 
@@ -364,6 +363,8 @@ namespace pacmanServer
                                         {
                                             delays.SendWithDelay(client.Key, (Action<bool>)client.Value.GameEnded, new object[] { true });
                                         }
+										_timer.Stop();
+										Console.WriteLine("Clients collected all coins. Game ended...");
                                     }
                                 }
                             }
@@ -726,7 +727,7 @@ namespace pacmanServer
                 }
             }
 
-            _game.Monsters.Add(new Character() { X = 301, Y = 72, Direction = Direction.LEFT });
+            _game.Monsters.Add(new Character() { X = 301, Y = 135, Direction = Direction.LEFT });
             _game.Monsters.Add(new Character() { X = 180, Y = 73, Direction = Direction.LEFT });
             _game.Monsters.Add(new Character() { X = 221, Y = 273, Direction = Direction.LEFT });
 
