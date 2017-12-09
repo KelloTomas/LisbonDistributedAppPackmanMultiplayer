@@ -1,12 +1,4 @@
 
-%
-%  $Description: Author guidelines and sample document in LaTeX 2.09$ 
-%
-%  $Author: ienne $
-%  $Date: 1995/09/15 15:20:59 $
-%  $Revision: 1.4 $
-%
-
 \documentclass[times, 10pt,twocolumn]{article} 
 \usepackage{latex8}
 \usepackage{times}
@@ -39,91 +31,145 @@ SecondAuthor@institution2.com\\
 \thispagestyle{empty}
 
 \begin{abstract}
-   The ABSTRACT is to be in fully-justified italicized text, at the top 
-   of the left-hand column, below the author and affiliation 
-   information. Use the word ``Abstract'' as the title, in 12-point 
-   Times, boldface type, centered relative to the column, initially 
-   capitalized. The abstract is to be in 10-point, single-spaced type. 
-   The abstract may be up to 3 inches (7.62 cm) long. Leave two blank 
-   lines after the Abstract, then begin the main text. 
+   
 \end{abstract}
 
 
 
 %------------------------------------------------------------------------- 
-\Section{Introduction}
+\section{Introduction}
 
-Please follow the steps outlined below when submitting your 
-manuscript to the IEEE Computer Society Press. Note there have 
-been some changes to the measurements from previous instructions. 
+In this paper, we will focus on implementation of distributed application. Communication over TCP/IP protocol, and multi-thread application problems and solutions to keep data consistent. All this techniques we will show on project which goal is to implement multi player PackMan game. For better testing and starting game we implemented main application, which execute command to start program server, client or control them, add delay or close application.
+In summary we implemented:
+\begin{itemize}
+	\item PuppetMaster - main aplication which controll other aplications.
+	\item ProcessCreationService - service which can start application on local computer.
+	\item Server - console application where whole game is maintained, collisions of objects calculated and broadcast new game state to clients
+	\item Client - WindowsForm application. Contain game window with players. Sends instruction to server and receive updated state of game.
+\end{itemize}
+Game is based on round timing. Configuration of game contains length of one round and then application start to indexing all rounds as round ID. Round Id is during game hidden from the game perspectivity. Player can get information about game only from log. Where is written round id and state of the game at that specific time.
 
-%------------------------------------------------------------------------- 
-\Section{Instructions}
+\section{PCS - Process creation service}
 
-Please read the following carefully.
+Is waiting on specific TCP address for Puppet Master to connect and execute commands, which are executed on command line of local computer. With this, it is possible for Puppet Master to start client application on different computers.
+
+\section{PuppetMaster}
+
+Execute commands from file or keyboard written to console. All commands are executed in parallel on separated thread. So it is important to create critical sections. Application contains list of connected clients, servers and PCS. This list is shared, so every*time new thread want to read. Need get exclusive access to list.
+\subsection{Added functionality}
+For better testing we extended application with new command "q", which send command to all application to close them including clients, servers, process creation service and after all,also Puppet Master is closed.
+\section{Structures used in program}
+One of the most used class is Game. Contain whole state of the game what mean RoundId. List of the Monsters, Players, coins and obsticles.
+\subsection{Player}
+Is derivated from Character and extended by player score.
+\subsection{Character}
+Derivated from position, what indicate current location of character. And class add direction of rotation in 2D.
+\subsection{Obsticle}
+Contains two object of type Position. First represent left top corner, and second represent width and height of object. All obsticles are represented as rectangles.
+\subsection{Position}
+We are playing 2D game, so this class contain coordinates X and Y.
+\section{Client Server shared functionality}
+To control game from Puppet Master. All application contains general functionality to influence behavior:
+\begin{itemize}
+	\item Insert delay - define delayed one way connection between applications
+	\item Freez - stop executing and sending instructions.
+	\item Unfreez - start to execute operations
+	\item Crash - exit application without letting now to anyone else
+\end{itemize}
+and to check state of application:
+\begin{itemize}
+	\item Global state - function write general information about his state to the console containing round Id position of monsters, coins, obsticles and position and state of players. All this informations are stored in complex object of type Game.
+	\item Local state - provide same functionality, but you can define round id, when you want to get update. This update is stored in the file of Puppet Master file system.
+\end{itemize}
+
+\section{Server}
+Parametrized program for maintaining state of PackMan game. Possibility to set address, where game will run, number of players in the game and timeout for one round of game.
+
+\subsection{Server service}
+Offer opportunity to register new player for game. If game doesn't start yet, then his address is stored as active player. After enough players are connected, game is initialized and start of the game is broadcast. 
+Second offered functions is SetMove. This function is periodically called by clients during the game. To notify server about required movement.
+
+\subsection{Architecture}
+Code is organized in Round-Rubin architecture with interrupts. They are important to receive instructions from clients. And then periodically are processed and new state of game is broadcasted. This template can be used in more application. And we tried to keep concept as universal as possible. To be able to fit program also for different kind of game.
+
+\subsection{Start game}
+Program initialize position of monsters, coins and client, assign them ID for chat and send them this state.
+
+\subsection{Set move}
+This function is triggered by client, independent on the intern state. Because this function is handled from interrupts, program only store value from client, and leave value for processing later by function Update game
+
+\subsection{Update game}
+Depending on time of timer, this function is triggerend periodicaly and update new position of monsters and players depending of they required direction. After new positions are applied. Program check monsters intersection with obsticles. In that case, monster direction is flipped. Then intersections of players are checked with:
+\begin{itemize}
+	\item player: nothing happend. Players can share same position
+	\item monster or obsticle: means Game Over for player. This information is set to him, and his character is removed from gaming place.
+	\item coins: thats the tast of clients, to collect all coins. If intersection happen. Players score increase and coin disappear.
+\end{itemize}
+
+\section{Client}
+Application with game plan and all characters drawn on it. This program read input from keyboard to navigate his character. In additions it is possible to define file, from were will instructions be simulated. Main core is triggered by timer to check keyboard state and send information to the server.
+\subsection{Client service}
+Offer multiple control functions for server:
+\begin{itemize}
+	\item Game started - notify client about start of the game, configuration and other clients.
+	\item Client disconected - ....................... .............................. ..................
+	\item Client connected - ..................   ..................... ........................... ..................
+	\item Game update - indicate new state of game, which should be displayed to the client. If client received request of local state, and ID is same as received Game state. Than this game is serialized and printed in client or Puppet Master application
+	\item Get chat id - this function together with Get vector clocks are used to reconfigure chat vector clocks, after new client is added during game.
+	\item Get vector clocks - return actual state of vector clocks representing number of received messages from every client.
+\end{itemize}
+\SubSection{Architecture}
+Application is designed has flow organized by events. That case a lot of concurent threads running in the same time. And we need to be very careful to keep data consistend.
+\SubSection{Chat}
+Is implemented as P2P communication directly between clients. Server is used only to provide contact to other clients in the game.
+\subsubsection{Causality}
+P2P communication has problem with causality in asynchronous systems. Because some application can be delayed, then order of messages can be wrong. To deal with this situation. Application has implemented vector clocks. Where is stored sequence number of all clients message. Every client has his own id and number in that vector on position of id represents his number of sended messages. Then it is possible to recognize that some message is missing, and new message needs to be saved in list of pending messages. And append after missing message.
+\subsubsection{Reconfiguration}
+Application can deal with a lot of fault tolerance techniques. One of them is also reconnect new client. If new client detect, that the game started early. He ask every other client for his ID and vector clock. Than he can recognize missing ID, which will he use. And his sequence number will initialize to the maximum of all clients. So after he send new message, every other client will recognize his message as new without reseting clocks.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 %------------------------------------------------------------------------- 
 \SubSection{Language}
 
-All manuscripts must be in English.
-
-%------------------------------------------------------------------------- 
-\SubSection{Printing your paper}
-
-Print your properly formatted text on high-quality, $8.5 \times 11$-inch 
-white printer paper. A4 paper is also acceptable, but please leave the 
-extra 0.5 inch (1.27 cm) at the BOTTOM of the page.
-
-%------------------------------------------------------------------------- 
-\SubSection{Margins and page numbering}
-
-All printed material, including text, illustrations, and charts, must be 
-kept within a print area 6-7/8 inches (17.5 cm) wide by 8-7/8 inches 
-(22.54 cm) high. Do not write or print anything outside the print area. 
-Number your pages lightly, in pencil, on the upper right-hand corners of 
-the BACKS of the pages (for example, 1/10, 2/10, or 1 of 10, 2 of 10, and 
-so forth). Please do not write on the fronts of the pages, nor on the 
-lower halves of the backs of the pages.
-
-
-%------------------------------------------------------------------------ 
-\SubSection{Formatting your paper}
-
-All text must be in a two-column format. The total allowable width of 
-the text area is 6-7/8 inches (17.5 cm) wide by 8-7/8 inches (22.54 cm) 
-high. Columns are to be 3-1/4 inches (8.25 cm) wide, with a 5/16 inch 
-(0.8 cm) space between them. The main title (on the first page) should 
-begin 1.0 inch (2.54 cm) from the top edge of the page. The second and 
-following pages should begin 1.0 inch (2.54 cm) from the top edge. On 
-all pages, the bottom margin should be 1-1/8 inches (2.86 cm) from the 
-bottom edge of the page for $8.5 \times 11$-inch paper; for A4 paper, 
-approximately 1-5/8 inches (4.13 cm) from the bottom edge of the page.
-
-%------------------------------------------------------------------------- 
-\SubSection{Type-style and fonts}
-
-Wherever Times is specified, Times Roman may also be used. If neither is 
-available on your word processor, please use the font closest in 
-appearance to Times that you have access to.
-
-MAIN TITLE. Center the title 1-3/8 inches (3.49 cm) from the top edge of 
-the first page. The title should be in Times 14-point, boldface type. 
-Capitalize the first letter of nouns, pronouns, verbs, adjectives, and 
-adverbs; do not capitalize articles, coordinate conjunctions, or 
-prepositions (unless the title begins with such a word). Leave two blank 
-lines after the title.
-
-AUTHOR NAME(s) and AFFILIATION(s) are to be centered beneath the title 
-and printed in Times 12-point, non-boldface type. This information is to 
-be followed by two blank lines.
-
-The ABSTRACT and MAIN TEXT are to be in a two-column format. 
-
-MAIN TEXT. Type main text in 10-point Times, single-spaced. Do NOT use 
-double-spacing. All paragraphs should be indented 1 pica (approx. 1/6 
-inch or 0.422 cm). Make sure your text is fully justified---that is, 
-flush left and flush right. Please do not place any additional blank 
-lines between paragraphs. Figure and table captions should be 10-point 
 Helvetica boldface type as in
 \begin{figure}[h]
    \caption{Example of caption.}
